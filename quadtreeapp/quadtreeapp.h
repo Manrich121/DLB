@@ -18,6 +18,7 @@
 
 #include <omnetpp.h>
 #include "BaseApp.h"
+#include "QuadServer.h"
 
 class QuadtreeApp: public BaseApp {
     // Self timer messages
@@ -27,13 +28,21 @@ class QuadtreeApp: public BaseApp {
     cMessage *clientMoveTimer;
 
     //params
+    int maxServers;
     bool master;
+    QuadServer* thisServer;
+    int clientCount;
 
-    // // application routines
+    // application routines
     void initializeApp(int stage);                 // called when the module is being created
     void finishApp();                              // called when the module is about to be destroyed
     void handleTimerEvent(cMessage* msg);          // called when we received a timer message
     void deliver(OverlayKey& key, cMessage* msg);  // called when we receive a message from the overlay
+
+    void addClient();
+    void removeClient();
+    void clientUpdate();
+    void checkLoad();
 
 public:
     QuadtreeApp(){ticTimer = NULL;};
