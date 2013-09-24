@@ -43,6 +43,14 @@ QuadServer::QuadServer(double x, double y)
     parent = NULL;
 }
 
+bool QuadServer::isLoaded() {
+    return this->myClients.size()>MAXCLIENTS;
+}
+
+bool QuadServer::underLoaded() {
+    return (this->lvl !=-1 && this->myClients.size()<MINCLIENTS && this->cell.n==1);
+}
+
 /*
  *  Adds a new Rectangle, enforcing topLeft and botRight Rectangle format
  *  p1-------

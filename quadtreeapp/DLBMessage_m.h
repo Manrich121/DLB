@@ -15,6 +15,7 @@
 
 // cplusplus {{
 #include <OverlayKey.h>
+#include "QuadServer.h"
 // }}
 
 
@@ -25,24 +26,27 @@
  * enum MessageType 
  * {
  *     LOC_MSG = 1;            
- *     LOAD_MSG = 2;           
+ *     SERVER_MSG = 2;           
  *     CLIENTRANS_MSG = 3;		
+ *     DEBUG_MSG = 4;			
  * }
  * </pre>
  */
 enum MessageType {
     LOC_MSG = 1,
-    LOAD_MSG = 2,
-    CLIENTRANS_MSG = 3
+    SERVER_MSG = 2,
+    CLIENTRANS_MSG = 3,
+    DEBUG_MSG = 4
 };
 
 /**
  * Class generated from <tt>DLB/quadtreeapp/DLBMessage.msg</tt> by opp_msgc.
  * <pre>
  * packet DLBMessage {
- *     OverlayKey senderKey; 	
- *     int type enum(MessageType);      
  * 
+ *     int type enum(MessageType);      
+ * 	QuadServer transferServer;
+ * 	OverlayKey senderKey; 			
  * 
  * }
  * </pre>
@@ -50,8 +54,9 @@ enum MessageType {
 class DLBMessage : public ::cPacket
 {
   protected:
-    OverlayKey senderKey_var;
     int type_var;
+    QuadServer transferServer_var;
+    OverlayKey senderKey_var;
 
   private:
     void copy(const DLBMessage& other);
@@ -70,11 +75,14 @@ class DLBMessage : public ::cPacket
     virtual void parsimUnpack(cCommBuffer *b);
 
     // field getter/setter methods
+    virtual int getType() const;
+    virtual void setType(int type);
+    virtual QuadServer& getTransferServer();
+    virtual const QuadServer& getTransferServer() const {return const_cast<DLBMessage*>(this)->getTransferServer();}
+    virtual void setTransferServer(const QuadServer& transferServer);
     virtual OverlayKey& getSenderKey();
     virtual const OverlayKey& getSenderKey() const {return const_cast<DLBMessage*>(this)->getSenderKey();}
     virtual void setSenderKey(const OverlayKey& senderKey);
-    virtual int getType() const;
-    virtual void setType(int type);
 };
 
 inline void doPacking(cCommBuffer *b, DLBMessage& obj) {obj.parsimPack(b);}

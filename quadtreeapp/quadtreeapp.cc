@@ -37,12 +37,15 @@ void QuadtreeApp::initializeApp(int stage)
 
     if (stage != MIN_STAGE_APP) return;
 
+    srand(time(NULL));
     // Get params set in .ini file
     maxServers = par("largestKey");
     clientCount = 0;
+    myKey = NULL;
 
     //TODO: add WATCH on data vars to record
     WATCH(clientCount);
+    WATCH(myKey);
 
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -53,12 +56,16 @@ void QuadtreeApp::initializeApp(int stage)
         clientMoveTimer = new cMessage("ClientMove Timer");
         scheduleAt(simTime() + 0.5, clientMoveTimer);
 
+//        clientAddTimer = new cMessage("Add or Remove Client");
+//        scheduleAt(simTime() + 2, clientAddTimer);
+
         serverTimer = new cMessage("Server load check");
         scheduleAt(simTime() + 2, serverTimer);
 
         thisServer = new QuadServer(WIDTH/2,WIDTH/2);
         thisServer->addRect(Point(0,0), Point(WIDTH,WIDTH));
         addClient();
+        sCount=1;
 
     }else{
         this->master = false;
@@ -74,8 +81,8 @@ void QuadtreeApp::finishApp(){
 
 // handleTimerEvent() is called when a self message is received
 void QuadtreeApp::handleTimerEvent(cMessage* msg){
-
-        // is this Tic timer?
+    myKey = this->overlay->getThisNode().getKey();
+    // is this Tic timer?
     if (msg == ticTimer) {
         scheduleAt(simTime() + 1, ticTimer);
 
@@ -86,7 +93,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
         DLBMessage *myMessage; // the message we'll send
         myMessage = new DLBMessage();
         myMessage->setType(LOC_MSG); // set the message type to LOC_MSG
-        myMessage->setSenderKey(this->overlay->getThisNode().getKey());  // Store this
+        myMessage->setSenderKey(myKey);  // Store this
         myMessage->setByteLength(100); // set the message length to 100 bytes
 
         EV << "QuadtreeApp::handelTimerEvent => " << thisNode.getIp() << ": Sending packet to "
@@ -95,13 +102,30 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
         callRoute(randomKey, myMessage); // send it to the overlay
     }else {
         if (msg == serverTimer) {
+            scheduleAt(simTime() + 2, serverTimer);
             checkLoad();
         }else{
             if (msg == clientAddTimer) {
-                addClient();
+                scheduleAt(simTime() + 2, clientAddTimer);
+                double r = rand()%100;
+                if (r<50){
+                    addClient();
+                }else{
+//                  Remove client
+                    removeClient();
+                }
 
             }else{
                 if (msg == clientMoveTimer) {
+                    scheduleAt(simTime() + 0.5, clientMoveTimer);
+                    double r = rand()%100;
+                    if (r<50){
+//                        addClient();
+                    }else{
+   //                  TODORemove client
+//                        removeClient();
+                    }
+                    addClient();
                     clientUpdate();
 
                 }else{
@@ -116,6 +140,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
 // deliver() is called when a message is received from the overlay
 // Unknown packets can be safely deleted here.
 void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
+     myKey = this->overlay->getThisNode().getKey();
     // we are only expecting messages of type DLBMessage, throw away any other
     DLBMessage *myMsg = dynamic_cast<DLBMessage*>(msg);
     if (myMsg == NULL) {
@@ -129,8 +154,8 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         delete myMsg;
         DLBMessage *myMessage; // the message we'll send
         myMessage = new DLBMessage();
-        myMessage->setType(LOAD_MSG); // set the message type to LOC_MSG
-        myMessage->setSenderKey(this->overlay->getThisNode().getKey());  // Store this
+        myMessage->setType(DEBUG_MSG); // set the message type to LOC_MSG
+        myMessage->setSenderKey(myKey);  // Store this
         myMessage->setByteLength(100); // set the message length to 100 bytes
 
 
@@ -140,8 +165,13 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
 
         callRoute(senderKey,myMsg);
     }else{
-        if (myMsg->getType() == LOAD_MSG){
+        if (myMsg->getType() == DEBUG_MSG){
             EV << "QuadtreeApp::deliver => " << thisNode.getIp() << ": Got reply from "<< myMsg->getSenderKey() << std::endl;
+        }else{
+            if (myMsg->getType() == SERVER_MSG) {
+                thisServer = &myMsg->getTransferServer();
+                EV << "########QuadtreeApp::deliver => " << myKey << " Got my new server state" << std::endl;
+            }
         }
         // Delete messages unrecognized or not used anymore
         delete msg;
@@ -179,28 +209,26 @@ void QuadtreeApp::checkLoad() {
     EV << "QuadtreeApp::checkLoad =>My " << thisNode.getIp() << " neighbours size: " << neighs->size() << std::endl;
 
     for (it = neighs->begin(); it != neighs->end(); it++) {
-        EV << "QuadtreeApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
+        if ((*it).getKey() != myKey)
+            EV << "QuadtreeApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
     }
-//    vector <Server*>::iterator sit;
-//    Server* curServ;
-//
-//    for (sit = this->servers.begin(); sit != this->servers.end(); sit++) {
-//        curServ = (*sit);
-//
-//        if (curServ->underLoaded()) {
-//            if (curServ->returnArea()) {
-//                servers.erase(sit);
-//                break;
-//            }
-//        }
-//
-//        if (curServ->isLoaded() && servers.size() <16) {
-//            Server* newServ = new Server();
-//            if (curServ->transfer(newServ)) {
-//                servers.push_back(newServ);
-//                break;
-//            }
-//        }
-//    }
+
+    if (thisServer->isLoaded() && sCount <= maxServers){
+        // Select new server key
+        OverlayKey newKey = neighs->at(sCount++).getKey();
+        QuadServer* newServer = new QuadServer(); // Init a new server object
+        if (thisServer->transfer(newServer)) {
+            DLBMessage *myMessage; // the message we'll send
+            myMessage = new DLBMessage();
+            myMessage->setType(SERVER_MSG); // set the message type to LOC_MSG
+            myMessage->setSenderKey(myKey);  // Store this
+            myMessage->setByteLength(100); // set the message length to 100 bytes
+            myMessage->setTransferServer(*newServer);
+
+            EV << "#########QuadtreeApp::checkLoad => Overloaded and setting up new server key: " << newKey << "MyLoc (" << thisServer->loc.x() << "," << thisServer->loc.y()
+                    << ") NewServloc (" << newServer->loc.x() << "," << newServer->loc.y() << ")"<< std::endl;
+            callRoute(newKey, myMessage);
+        }
+    }
 }
 

@@ -29,9 +29,11 @@ class QuadtreeApp: public BaseApp {
 
     //params
     int maxServers;
-    bool master;
-    QuadServer* thisServer;
     int clientCount;
+    bool master;
+    OverlayKey myKey;
+    QuadServer* thisServer;
+    int sCount;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created
@@ -45,7 +47,8 @@ class QuadtreeApp: public BaseApp {
     void checkLoad();
 
 public:
-    QuadtreeApp(){ticTimer = NULL;};
+    QuadtreeApp(){ticTimer = NULL;
+    };
     ~QuadtreeApp(){ cancelAndDelete(ticTimer);};
 };
 

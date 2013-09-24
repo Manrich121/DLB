@@ -34,8 +34,9 @@ EXECUTE_ON_STARTUP(
     cEnum *e = cEnum::find("MessageType");
     if (!e) enums.getInstance()->add(e = new cEnum("MessageType"));
     e->insert(LOC_MSG, "LOC_MSG");
-    e->insert(LOAD_MSG, "LOAD_MSG");
+    e->insert(SERVER_MSG, "SERVER_MSG");
     e->insert(CLIENTRANS_MSG, "CLIENTRANS_MSG");
+    e->insert(DEBUG_MSG, "DEBUG_MSG");
 );
 
 Register_Class(DLBMessage);
@@ -64,32 +65,25 @@ DLBMessage& DLBMessage::operator=(const DLBMessage& other)
 
 void DLBMessage::copy(const DLBMessage& other)
 {
-    this->senderKey_var = other.senderKey_var;
     this->type_var = other.type_var;
+    this->transferServer_var = other.transferServer_var;
+    this->senderKey_var = other.senderKey_var;
 }
 
 void DLBMessage::parsimPack(cCommBuffer *b)
 {
     cPacket::parsimPack(b);
-    doPacking(b,this->senderKey_var);
     doPacking(b,this->type_var);
+    doPacking(b,this->transferServer_var);
+    doPacking(b,this->senderKey_var);
 }
 
 void DLBMessage::parsimUnpack(cCommBuffer *b)
 {
     cPacket::parsimUnpack(b);
-    doUnpacking(b,this->senderKey_var);
     doUnpacking(b,this->type_var);
-}
-
-OverlayKey& DLBMessage::getSenderKey()
-{
-    return senderKey_var;
-}
-
-void DLBMessage::setSenderKey(const OverlayKey& senderKey)
-{
-    this->senderKey_var = senderKey;
+    doUnpacking(b,this->transferServer_var);
+    doUnpacking(b,this->senderKey_var);
 }
 
 int DLBMessage::getType() const
@@ -100,6 +94,26 @@ int DLBMessage::getType() const
 void DLBMessage::setType(int type)
 {
     this->type_var = type;
+}
+
+QuadServer& DLBMessage::getTransferServer()
+{
+    return transferServer_var;
+}
+
+void DLBMessage::setTransferServer(const QuadServer& transferServer)
+{
+    this->transferServer_var = transferServer;
+}
+
+OverlayKey& DLBMessage::getSenderKey()
+{
+    return senderKey_var;
+}
+
+void DLBMessage::setSenderKey(const OverlayKey& senderKey)
+{
+    this->senderKey_var = senderKey;
 }
 
 class DLBMessageDescriptor : public cClassDescriptor
@@ -149,7 +163,7 @@ const char *DLBMessageDescriptor::getProperty(const char *propertyname) const
 int DLBMessageDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 2+basedesc->getFieldCount(object) : 2;
+    return basedesc ? 3+basedesc->getFieldCount(object) : 3;
 }
 
 unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -161,10 +175,11 @@ unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) co
         field -= basedesc->getFieldCount(object);
     }
     static unsigned int fieldTypeFlags[] = {
-        FD_ISCOMPOUND,
         FD_ISEDITABLE,
+        FD_ISCOMPOUND,
+        FD_ISCOMPOUND,
     };
-    return (field>=0 && field<2) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<3) ? fieldTypeFlags[field] : 0;
 }
 
 const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
@@ -176,18 +191,20 @@ const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
         field -= basedesc->getFieldCount(object);
     }
     static const char *fieldNames[] = {
-        "senderKey",
         "type",
+        "transferServer",
+        "senderKey",
     };
-    return (field>=0 && field<2) ? fieldNames[field] : NULL;
+    return (field>=0 && field<3) ? fieldNames[field] : NULL;
 }
 
 int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount(object) : 0;
-    if (fieldName[0]=='s' && strcmp(fieldName, "senderKey")==0) return base+0;
-    if (fieldName[0]=='t' && strcmp(fieldName, "type")==0) return base+1;
+    if (fieldName[0]=='t' && strcmp(fieldName, "type")==0) return base+0;
+    if (fieldName[0]=='t' && strcmp(fieldName, "transferServer")==0) return base+1;
+    if (fieldName[0]=='s' && strcmp(fieldName, "senderKey")==0) return base+2;
     return basedesc ? basedesc->findField(object, fieldName) : -1;
 }
 
@@ -200,10 +217,11 @@ const char *DLBMessageDescriptor::getFieldTypeString(void *object, int field) co
         field -= basedesc->getFieldCount(object);
     }
     static const char *fieldTypeStrings[] = {
-        "OverlayKey",
         "int",
+        "QuadServer",
+        "OverlayKey",
     };
-    return (field>=0 && field<2) ? fieldTypeStrings[field] : NULL;
+    return (field>=0 && field<3) ? fieldTypeStrings[field] : NULL;
 }
 
 const char *DLBMessageDescriptor::getFieldProperty(void *object, int field, const char *propertyname) const
@@ -215,7 +233,7 @@ const char *DLBMessageDescriptor::getFieldProperty(void *object, int field, cons
         field -= basedesc->getFieldCount(object);
     }
     switch (field) {
-        case 1:
+        case 0:
             if (!strcmp(propertyname,"enum")) return "MessageType";
             return NULL;
         default: return NULL;
@@ -246,8 +264,9 @@ std::string DLBMessageDescriptor::getFieldAsString(void *object, int field, int 
     }
     DLBMessage *pp = (DLBMessage *)object; (void)pp;
     switch (field) {
-        case 0: {std::stringstream out; out << pp->getSenderKey(); return out.str();}
-        case 1: return long2string(pp->getType());
+        case 0: return long2string(pp->getType());
+        case 1: {std::stringstream out; out << pp->getTransferServer(); return out.str();}
+        case 2: {std::stringstream out; out << pp->getSenderKey(); return out.str();}
         default: return "";
     }
 }
@@ -262,7 +281,7 @@ bool DLBMessageDescriptor::setFieldAsString(void *object, int field, int i, cons
     }
     DLBMessage *pp = (DLBMessage *)object; (void)pp;
     switch (field) {
-        case 1: pp->setType(string2long(value)); return true;
+        case 0: pp->setType(string2long(value)); return true;
         default: return false;
     }
 }
@@ -276,10 +295,11 @@ const char *DLBMessageDescriptor::getFieldStructName(void *object, int field) co
         field -= basedesc->getFieldCount(object);
     }
     static const char *fieldStructNames[] = {
-        "OverlayKey",
         NULL,
+        "QuadServer",
+        "OverlayKey",
     };
-    return (field>=0 && field<2) ? fieldStructNames[field] : NULL;
+    return (field>=0 && field<3) ? fieldStructNames[field] : NULL;
 }
 
 void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i) const
@@ -292,7 +312,8 @@ void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i
     }
     DLBMessage *pp = (DLBMessage *)object; (void)pp;
     switch (field) {
-        case 0: return (void *)(&pp->getSenderKey()); break;
+        case 1: return (void *)(&pp->getTransferServer()); break;
+        case 2: return (void *)(&pp->getSenderKey()); break;
         default: return NULL;
     }
 }

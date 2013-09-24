@@ -15,8 +15,10 @@
 
 cplusplus {{
 #include <OverlayKey.h>
+#include "QuadServer.h"
 }}
 class noncobject OverlayKey;
+class noncobject QuadServer;
 
 //cplusplus {{
 //#include <map>
@@ -27,13 +29,15 @@ class noncobject OverlayKey;
 enum MessageType 
 {
     LOC_MSG = 1;            // message used to send a location
-    LOAD_MSG = 2;           // message used to check a server load
+    SERVER_MSG = 2;           // message used to check a server load
     CLIENTRANS_MSG = 3;		// message used to transfer a client
+    DEBUG_MSG = 4;			// message used to test ping-pong funtions
 }
 
 packet DLBMessage {
-    OverlayKey senderKey; 	// The key of the sender of this message
+
     int type enum(MessageType);      // message type
-//    SomeType field1;
+	QuadServer transferServer;
+	OverlayKey senderKey; 			// The key of the sender of this message
 //    OtherType field2;
 }
