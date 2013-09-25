@@ -18,6 +18,12 @@
 #include "QuadServer.h"
 // }}
 
+// cplusplus {{
+#include <vector>
+#include "Client.h"
+typedef std::vector<Client*> clientVect;
+// }}
+
 
 
 /**
@@ -47,7 +53,7 @@ enum MessageType {
  *     int type enum(MessageType);      
  * 	QuadServer transferServer;
  * 	OverlayKey senderKey; 			
- * 
+ *     clientVect clients;
  * }
  * </pre>
  */
@@ -57,6 +63,7 @@ class DLBMessage : public ::cPacket
     int type_var;
     QuadServer transferServer_var;
     OverlayKey senderKey_var;
+    clientVect clients_var;
 
   private:
     void copy(const DLBMessage& other);
@@ -83,6 +90,9 @@ class DLBMessage : public ::cPacket
     virtual OverlayKey& getSenderKey();
     virtual const OverlayKey& getSenderKey() const {return const_cast<DLBMessage*>(this)->getSenderKey();}
     virtual void setSenderKey(const OverlayKey& senderKey);
+    virtual clientVect& getClients();
+    virtual const clientVect& getClients() const {return const_cast<DLBMessage*>(this)->getClients();}
+    virtual void setClients(const clientVect& clients);
 };
 
 inline void doPacking(cCommBuffer *b, DLBMessage& obj) {obj.parsimPack(b);}

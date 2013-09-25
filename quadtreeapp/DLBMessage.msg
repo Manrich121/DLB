@@ -20,11 +20,12 @@ cplusplus {{
 class noncobject OverlayKey;
 class noncobject QuadServer;
 
-//cplusplus {{
-//#include <map>
-//typedef OtherType std::map<int,int>;
-//}}
-//class noncobject OtherType;
+cplusplus {{
+#include <vector>
+#include "Client.h"
+typedef std::vector<Client*> clientVect;
+}}
+class noncobject clientVect;
 
 enum MessageType 
 {
@@ -39,5 +40,5 @@ packet DLBMessage {
     int type enum(MessageType);      // message type
 	QuadServer transferServer;
 	OverlayKey senderKey; 			// The key of the sender of this message
-//    OtherType field2;
+    clientVect clients;
 }

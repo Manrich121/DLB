@@ -33,7 +33,10 @@ class QuadtreeApp: public BaseApp {
     bool master;
     OverlayKey myKey;
     QuadServer* thisServer;
+
+    // Master server params
     int sCount;
+    std::set<OverlayKey> inUse;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created
@@ -45,6 +48,7 @@ class QuadtreeApp: public BaseApp {
     void removeClient();
     void clientUpdate();
     void checkLoad();
+    OverlayKey getNewServerKey();
 
 public:
     QuadtreeApp(){ticTimer = NULL;

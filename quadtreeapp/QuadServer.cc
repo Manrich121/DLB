@@ -22,6 +22,17 @@
  **************************************/
 
 QuadServer::QuadServer(){
+    key = OverlayKey::ZERO;
+    loc = Point(0,0);
+    lvl = -1;           // Set lvl to -1 indicationg that it has not been assigned
+    cell.n = 0;
+    childCount = 0;
+    cell.origin = NULL;
+    parent = NULL;
+}
+
+QuadServer::QuadServer(OverlayKey k){
+    key = k;
     loc = Point(0,0);
     lvl = -1;           // Set lvl to -1 indicationg that it has not been assigned
     cell.n = 0;
@@ -188,17 +199,7 @@ bool QuadServer::transfer(QuadServer *t) {
 
     t->addAdjacent(this);
 
-    this->checkOwnership();
-
-//    while (this->isLoaded()) {
-//        curRect = (*this->cell.rect.rbegin());
-//        this->cell.rect.pop_back();
-//        this->cell.n--;
-//        t->addRect(curRect);
-//        t->addAdjacent(this);
-//        this->checkOwership();
-//    }
-
+    std::vector<Client*> notMine = this->checkOwnership();
 
     // test all neighbours possible adjacent
     set <QuadServer*>::iterator it;
@@ -210,6 +211,12 @@ bool QuadServer::transfer(QuadServer *t) {
             (*it)->addAdjacent(this);
             this->neighbours.erase(*it);
             this->addAdjacent(*it);
+        }
+
+        for(unsigned int i=0; i<notMine.size();i++){
+            if ((*it)->ownership(notMine.at(i))) {
+                (*it)->myClients.insert(notMine.at(i));
+            }
         }
     }
 
@@ -313,38 +320,26 @@ void QuadServer::addAdjacent(QuadServer* t) {
     }
 }
 
-void QuadServer::ownership(Client* c) {
-    bool found = false;
-
-
+bool QuadServer::ownership(Client* c) {
     if (this->insideArea(&c->loc)) {
-        return;
+        return true;
     }
-    set <QuadServer*>::iterator it;
-    for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-        if ((*it)->insideArea(&c->loc)) {
-            found = true;
-            (*it)->myClients.insert(c);
-            this->myClients.erase(c);
-        }
-    }
-
-#ifdef _DEBUG
-    if (!found) {
-        printf("Client bug");
-    }
-#endif
+    return false;
 }
 
 
-void QuadServer::checkOwnership() {
+std::vector<Client*> QuadServer::checkOwnership() {
     set <Client*>::iterator it;
     set <Client*> tmp = myClients;
+    std::vector<Client*> notMine;
 
-    for (it = tmp.begin(); it != tmp.end();) {
-        this->ownership(*it);
-        ++it;
+    for (it = tmp.begin(); it != tmp.end(); ++it) {
+        if (!this->ownership(*it)) {
+            notMine.push_back(*it);
+            this->myClients.erase(*it);
+        }
     }
+    return notMine;
 }
 
 void QuadServer::printNeighbourLocs(){

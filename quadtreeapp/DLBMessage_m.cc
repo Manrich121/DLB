@@ -68,6 +68,7 @@ void DLBMessage::copy(const DLBMessage& other)
     this->type_var = other.type_var;
     this->transferServer_var = other.transferServer_var;
     this->senderKey_var = other.senderKey_var;
+    this->clients_var = other.clients_var;
 }
 
 void DLBMessage::parsimPack(cCommBuffer *b)
@@ -76,6 +77,7 @@ void DLBMessage::parsimPack(cCommBuffer *b)
     doPacking(b,this->type_var);
     doPacking(b,this->transferServer_var);
     doPacking(b,this->senderKey_var);
+    doPacking(b,this->clients_var);
 }
 
 void DLBMessage::parsimUnpack(cCommBuffer *b)
@@ -84,6 +86,7 @@ void DLBMessage::parsimUnpack(cCommBuffer *b)
     doUnpacking(b,this->type_var);
     doUnpacking(b,this->transferServer_var);
     doUnpacking(b,this->senderKey_var);
+    doUnpacking(b,this->clients_var);
 }
 
 int DLBMessage::getType() const
@@ -114,6 +117,16 @@ OverlayKey& DLBMessage::getSenderKey()
 void DLBMessage::setSenderKey(const OverlayKey& senderKey)
 {
     this->senderKey_var = senderKey;
+}
+
+clientVect& DLBMessage::getClients()
+{
+    return clients_var;
+}
+
+void DLBMessage::setClients(const clientVect& clients)
+{
+    this->clients_var = clients;
 }
 
 class DLBMessageDescriptor : public cClassDescriptor
@@ -163,7 +176,7 @@ const char *DLBMessageDescriptor::getProperty(const char *propertyname) const
 int DLBMessageDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 3+basedesc->getFieldCount(object) : 3;
+    return basedesc ? 4+basedesc->getFieldCount(object) : 4;
 }
 
 unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -178,8 +191,9 @@ unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) co
         FD_ISEDITABLE,
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
+        FD_ISCOMPOUND,
     };
-    return (field>=0 && field<3) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
 }
 
 const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
@@ -194,8 +208,9 @@ const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
         "type",
         "transferServer",
         "senderKey",
+        "clients",
     };
-    return (field>=0 && field<3) ? fieldNames[field] : NULL;
+    return (field>=0 && field<4) ? fieldNames[field] : NULL;
 }
 
 int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
@@ -205,6 +220,7 @@ int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
     if (fieldName[0]=='t' && strcmp(fieldName, "type")==0) return base+0;
     if (fieldName[0]=='t' && strcmp(fieldName, "transferServer")==0) return base+1;
     if (fieldName[0]=='s' && strcmp(fieldName, "senderKey")==0) return base+2;
+    if (fieldName[0]=='c' && strcmp(fieldName, "clients")==0) return base+3;
     return basedesc ? basedesc->findField(object, fieldName) : -1;
 }
 
@@ -220,8 +236,9 @@ const char *DLBMessageDescriptor::getFieldTypeString(void *object, int field) co
         "int",
         "QuadServer",
         "OverlayKey",
+        "clientVect",
     };
-    return (field>=0 && field<3) ? fieldTypeStrings[field] : NULL;
+    return (field>=0 && field<4) ? fieldTypeStrings[field] : NULL;
 }
 
 const char *DLBMessageDescriptor::getFieldProperty(void *object, int field, const char *propertyname) const
@@ -267,6 +284,7 @@ std::string DLBMessageDescriptor::getFieldAsString(void *object, int field, int 
         case 0: return long2string(pp->getType());
         case 1: {std::stringstream out; out << pp->getTransferServer(); return out.str();}
         case 2: {std::stringstream out; out << pp->getSenderKey(); return out.str();}
+        case 3: {std::stringstream out; out << pp->getClients(); return out.str();}
         default: return "";
     }
 }
@@ -298,8 +316,9 @@ const char *DLBMessageDescriptor::getFieldStructName(void *object, int field) co
         NULL,
         "QuadServer",
         "OverlayKey",
+        "clientVect",
     };
-    return (field>=0 && field<3) ? fieldStructNames[field] : NULL;
+    return (field>=0 && field<4) ? fieldStructNames[field] : NULL;
 }
 
 void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i) const
@@ -314,6 +333,7 @@ void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i
     switch (field) {
         case 1: return (void *)(&pp->getTransferServer()); break;
         case 2: return (void *)(&pp->getSenderKey()); break;
+        case 3: return (void *)(&pp->getClients()); break;
         default: return NULL;
     }
 }

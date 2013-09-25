@@ -25,6 +25,9 @@
 #include "Client.h"
 #include "ConvexHullAlgs.h"
 
+// Oversim
+#include <OverlayKey.h>
+
 // Defines
 #define MAXCLIENTS 5
 #define MINCLIENTS 1
@@ -68,6 +71,7 @@ class QuadServer {
     QuadServer();
     ~QuadServer();
     QuadServer(double x, double y);
+    QuadServer(OverlayKey k);
 
     void printNeighbourLocs();
     bool isLoaded();
@@ -85,10 +89,11 @@ class QuadServer {
     bool returnArea();          // Selects less loaded neighbour in same lvl, else on lvl up;
     bool insideArea(Point* tp);  // Determines if the test point tp is inside the area of current server
     void addAdjacent(QuadServer* t); // Determines if the Server t, and all its neighbours is adjacent to this, thus is a neighbour
-    void ownership(Client* c);
-    void checkOwnership();
+    bool ownership(Client* c);
+    std::vector<Client*> checkOwnership();
 
 // Params
+    OverlayKey key;
     Point loc;
     int lvl;
     Cell cell;
