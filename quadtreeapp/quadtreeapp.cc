@@ -61,7 +61,7 @@ void QuadtreeApp::initializeApp(int stage)
 
         // start client timer
         this->clientMoveTimer = new cMessage("ClientMove Timer");
-        scheduleAt(simTime() + 0.5 + WAIT, clientMoveTimer);
+        scheduleAt(simTime() + 0.2 + WAIT, clientMoveTimer);
 
         serverTimer = new cMessage("Server load check");
         scheduleAt(simTime() + 2 + WAIT, serverTimer);
@@ -100,7 +100,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
     myKey = this->overlay->getThisNode().getKey();
     // is this Tic timer?
     if (msg == ticTimer) {
-        scheduleAt(simTime() + 1, ticTimer);
+        scheduleAt(simTime() + 2, ticTimer);
 
         NodeVector* neighs = this->overlay->neighborSet(maxServers);
         OverlayKey randomKey = neighs->at((intuniform(1, neighs->size()-1))).getKey();
@@ -147,7 +147,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                  * Update thisServer's client movement and check ownership
                  */
                 if (msg == clientMoveTimer) {
-                    scheduleAt(simTime() + 0.5, clientMoveTimer);
+                    scheduleAt(simTime() + 0.2, clientMoveTimer);
                     if (thisServer != NULL) {
                         if (thisServer->myClients.size() > 0) {
 //                            EV << "thisServer.myClients.size()" << thisServer->myClients.size() << std::endl;
@@ -196,14 +196,15 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         }else{
             if (myMsg->getType() == SERVER_MSG) {
                 // Create new QuadServer object and assign values to it
-                thisServer = new QuadServer();
+                thisServer = new QuadServer;
                 *thisServer = myMsg->getTransferServer();
                 this->clientCount = thisServer->myClients.size();
                 EV << "+++++++++++++++++\nQuadtreeApp::deliver => " << myKey << " Got my new server state" << std::endl;
-                EV << "Key: " << thisServer->key << "\n"
-                     << "Loc : (" << thisServer->loc.x() << "," << thisServer->loc.y() << ")\n"
+                EV << "Loc : (" << thisServer->loc.x() << "," << thisServer->loc.y() << ")\n"
                      << "Neighbours size : " << thisServer->neighbours.size() << "\n"
-                     << "myClients.size : " << thisServer->myClients.size()
+                     << "myClients.size : " << thisServer->myClients.size() << "\n"
+                     << "Rec: tl(" << thisServer->cell.rect.front()->topLeft.x() << "," << thisServer->cell.rect.front()->topLeft.y() << ")"
+                     << "br(" << thisServer->cell.rect.front()->botRight.x() << "," << thisServer->cell.rect.front()->botRight.y() << ")"
                      << "\n+++++++++++++++" << std::endl;
 
                 // start client timer
@@ -212,18 +213,18 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
 
             }else{
                 if (myMsg->getType() == CLIENTRANS_MSG) {
-                    EV << "------------------\nQuadtreeApp::deliver => Transfered client\n" << std::endl;
+                    EV << "------------------ Client Transfer ----------------" << std::endl;
 //                  Check ownership on new clients and insert into thisServer.myClients
                     std::vector<Client*> notMine = myMsg->getClients();
                     std::vector<Client*>::iterator it;
                     for(unsigned int i=0;i<notMine.size();i++){
+                        EV << "QuadtreeApp::deliver => Client (" << notMine.at(i)->loc.x() << "," << notMine.at(i)->loc.y() << ") Mine? " <<  thisServer->ownership(notMine.at(i))  << std::endl;
                         if(thisServer->ownership(notMine.at(i))){
                             thisServer->myClients.insert(notMine.at(i));
-                            EV << "QuadtreeApp::deliver => Client (" << notMine.at(i)->loc.x() << "," << notMine.at(i)->loc.y() << ") added" << std::endl;
                         }
                     }
                     this->clientCount = thisServer->myClients.size();
-                    EV << "------------------" << std::endl;
+                    EV << "------------------ Client Transfer ----------------" << std::endl;
                 }
             }
         }
@@ -254,8 +255,8 @@ void QuadtreeApp::clientUpdate() {
        if (!thisServer->ownership(*it)){
            EV << "QuadTreeApp::clientUpdate: REMOVED CLIENT: " << (*it)->loc.x() << ", " << (*it)->loc.y() << std::endl;
            notMine.push_back(*it);
-//           thisServer->myClients.erase(*it);
-//           clientCount--;
+           thisServer->myClients.erase(*it);
+           clientCount--;
        }
     }
     EV << "------------ Update Clients--------------" << std::endl;
