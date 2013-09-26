@@ -59,6 +59,10 @@ void QuadtreeApp::initializeApp(int stage)
 //        clientAddTimer = new cMessage("Add or Remove Client");
 //        scheduleAt(simTime() + 2, clientAddTimer);
 
+        // start client timer
+        this->clientMoveTimer = new cMessage("ClientMove Timer");
+        scheduleAt(simTime() + 0.5 + WAIT, clientMoveTimer);
+
         serverTimer = new cMessage("Server load check");
         scheduleAt(simTime() + 2 + WAIT, serverTimer);
 
@@ -71,18 +75,23 @@ void QuadtreeApp::initializeApp(int stage)
         addClient();
         sCount=1;
 
+
     }else{
         this->master = false;
+        serverTimer = NULL;
+        clientAddTimer = NULL;
+        clientMoveTimer = NULL;
     }
-
-    clientMoveTimer = new cMessage("ClientMove Timer");
-    scheduleAt(simTime() + 0.5 + WAIT, clientMoveTimer);
 
     bindToPort(2000);
 }
 
 // finishApp is called when this module is being distroyed
 void QuadtreeApp::finishApp(){
+    cancelAndDelete(serverTimer);
+    cancelAndDelete(clientMoveTimer);
+    cancelAndDelete(clientAddTimer);
+    cancelAndDelete(ticTimer);
     // TODO: globalStatistics->addStdDev("ManApplication: Sent packets", numSent);
 }
 
@@ -109,12 +118,19 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
         callRoute(randomKey, myMessage); // send it to the overlay
         addClient();
     }else {
+    /*
+     *  Check load of a server
+     */
         if (msg == serverTimer) {
             scheduleAt(simTime() + 2, serverTimer);
             if (thisServer != NULL){
                 checkLoad();
             }
         }else{
+            /*
+             * Add or Remove a client from this server
+             */
+
             if (msg == clientAddTimer) {
                 scheduleAt(simTime() + 2, clientAddTimer);
                 if (thisServer != NULL){
@@ -126,16 +142,18 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                         removeClient();
                     }
                 }
-
             }else{
+                /*
+                 * Update thisServer's client movement and check ownership
+                 */
                 if (msg == clientMoveTimer) {
                     scheduleAt(simTime() + 0.5, clientMoveTimer);
-                    if (thisServer != NULL){
-                        if (!thisServer->myClients.empty()){
+                    if (thisServer != NULL) {
+                        if (thisServer->myClients.size() > 0) {
+//                            EV << "thisServer.myClients.size()" << thisServer->myClients.size() << std::endl;
                             clientUpdate();
                         }
                     }
-
                 }else{
                     // Unknown messages can be deleted
                     cancelAndDelete(msg);
@@ -177,9 +195,21 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
             EV << "QuadtreeApp::deliver => " << thisNode.getIp() << ": Got reply from "<< myMsg->getSenderKey() << std::endl;
         }else{
             if (myMsg->getType() == SERVER_MSG) {
-                thisServer = &myMsg->getTransferServer();
+                // Create new QuadServer object and assign values to it
+                thisServer = new QuadServer();
+                *thisServer = myMsg->getTransferServer();
                 this->clientCount = thisServer->myClients.size();
-                EV << "+++++++++++++++++\nQuadtreeApp::deliver => " << myKey << " Got my new server state\n+++++++++++++++++" << std::endl;
+                EV << "+++++++++++++++++\nQuadtreeApp::deliver => " << myKey << " Got my new server state" << std::endl;
+                EV << "Key: " << thisServer->key << "\n"
+                     << "Loc : (" << thisServer->loc.x() << "," << thisServer->loc.y() << ")\n"
+                     << "Neighbours size : " << thisServer->neighbours.size() << "\n"
+                     << "myClients.size : " << thisServer->myClients.size()
+                     << "\n+++++++++++++++" << std::endl;
+
+                // start client timer
+                this->clientMoveTimer = new cMessage("ClientMove Timer");
+                scheduleAt(simTime() + 0.5, clientMoveTimer);
+
             }else{
                 if (myMsg->getType() == CLIENTRANS_MSG) {
                     EV << "------------------\nQuadtreeApp::deliver => Transfered client\n" << std::endl;
@@ -197,7 +227,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
                 }
             }
         }
-        delete myMsg;
+        delete msg;
     }
 }
 
@@ -217,19 +247,21 @@ void QuadtreeApp::clientUpdate() {
     set <Client*>::iterator it;
     set <Client*>::iterator tmp;
     std::vector<Client*> notMine;
-
+    EV << "\n------------ "<< thisNode.getIp()<< " Update Clients--------------" << std::endl;
     for (it = thisServer->myClients.begin(); it != thisServer->myClients.end();it++) {
        (*it)->move();
        EV << "QuadTreeApp::clientUpdate: " << (*it)->loc.x() << ", " << (*it)->loc.y() << std::endl;
        if (!thisServer->ownership(*it)){
            EV << "QuadTreeApp::clientUpdate: REMOVED CLIENT: " << (*it)->loc.x() << ", " << (*it)->loc.y() << std::endl;
            notMine.push_back(*it);
-           thisServer->myClients.erase(*it);
+//           thisServer->myClients.erase(*it);
+//           clientCount--;
        }
     }
+    EV << "------------ Update Clients--------------" << std::endl;
+    EV << "notMine.size() : " << notMine.size() << std::endl;
 
-//    thisServer->checkOwnership();
-    this->clientCount = thisServer->myClients.size();
+    thisServer->checkOwnership();
 
     if (notMine.size() > 0) {
         EV << "\n------------Transfer Clients--------------\n\n" << std::endl;
@@ -254,7 +286,7 @@ void QuadtreeApp::clientUpdate() {
 void QuadtreeApp::checkLoad() {
     if (thisServer->isLoaded() && sCount < maxServers){
         // Select new server key
-        EV << "\n+++++++++++++++++ checkLoad ++++++++++++++++++\n" << std::endl;
+        EV << "+++++++++++++++++ checkLoad ++++++++++++++++++" << std::endl;
         OverlayKey newKey =  getNewServerKey();
         EV << "QuadtreeApp::checkload => chosen key: " << newKey << std::endl;
         if (newKey.isUnspecified())
@@ -270,11 +302,11 @@ void QuadtreeApp::checkLoad() {
             myMessage->setByteLength(100); // set the message length to 100 bytes
             myMessage->setTransferServer(*newServer);
 
-            EV << "QuadtreeApp::checkLoad => Overloaded and setting up new server key: " << newKey << " MyLoc (" << thisServer->loc.x() << "," << thisServer->loc.y()
+            EV << "QuadtreeApp::checkLoad => Overloaded and setting up new server, key: " << newKey << " MyLoc (" << thisServer->loc.x() << "," << thisServer->loc.y()
                     << ") NewServloc (" << newServer->loc.x() << "," << newServer->loc.y() << ")"<< std::endl;
             callRoute(newKey, myMessage);
         }
-        EV << "\n+++++++++++++++++ checkLoad ++++++++++++++++++\n" << std::endl;
+        EV << "+++++++++++++++++ checkLoad ++++++++++++++++++" << std::endl;
     }
 
 }

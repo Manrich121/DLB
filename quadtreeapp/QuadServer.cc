@@ -29,6 +29,8 @@ QuadServer::QuadServer(){
     childCount = 0;
     cell.origin = NULL;
     parent = NULL;
+    myClients.clear();
+    neighbours.clear();
 }
 
 QuadServer::QuadServer(OverlayKey k){
@@ -39,9 +41,8 @@ QuadServer::QuadServer(OverlayKey k){
     childCount = 0;
     cell.origin = NULL;
     parent = NULL;
-}
-
-QuadServer::~QuadServer() {
+    myClients.clear();
+    neighbours.clear();
 }
 
 QuadServer::QuadServer(double x, double y)
@@ -52,6 +53,11 @@ QuadServer::QuadServer(double x, double y)
     childCount = 0;
     cell.origin = NULL;
     parent = NULL;
+    myClients.clear();
+    neighbours.clear();
+}
+
+QuadServer::~QuadServer() {
 }
 
 bool QuadServer::isLoaded() {
@@ -199,7 +205,7 @@ bool QuadServer::transfer(QuadServer *t) {
 
     t->addAdjacent(this);
 
-    std::vector<Client*> notMine = this->checkOwnership();
+//    std::vector<Client*> notMine = this->checkOwnership();
 
     // test all neighbours possible adjacent
     set <QuadServer*>::iterator it;
@@ -213,11 +219,11 @@ bool QuadServer::transfer(QuadServer *t) {
             this->addAdjacent(*it);
         }
 
-        for(unsigned int i=0; i<notMine.size();i++){
-            if ((*it)->ownership(notMine.at(i))) {
-                (*it)->myClients.insert(notMine.at(i));
-            }
-        }
+//        for(unsigned int i=0; i<notMine.size();i++){
+//            if ((*it)->ownership(notMine.at(i))) {
+//                (*it)->myClients.insert(notMine.at(i));
+//            }
+//        }
     }
 
 #ifdef _DEBUG
@@ -336,7 +342,7 @@ std::vector<Client*> QuadServer::checkOwnership() {
     for (it = tmp.begin(); it != tmp.end(); ++it) {
         if (!this->ownership(*it)) {
             notMine.push_back(*it);
-            this->myClients.erase(*it);
+//            this->myClients.erase(*it);
         }
     }
     return notMine;
