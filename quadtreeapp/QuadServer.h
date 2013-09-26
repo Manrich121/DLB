@@ -70,7 +70,7 @@ class QuadServer {
     public:
     QuadServer();
     ~QuadServer();
-    QuadServer(double x, double y);
+    QuadServer(OverlayKey k, double x, double y);
     QuadServer(OverlayKey k);
 
     void printNeighbourLocs();

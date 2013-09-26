@@ -26,6 +26,7 @@ class QuadtreeApp: public BaseApp {
     cMessage *serverTimer;
     cMessage *clientAddTimer;
     cMessage *clientMoveTimer;
+    cMessage *setupMessage;
 
     //params
     int maxServers;

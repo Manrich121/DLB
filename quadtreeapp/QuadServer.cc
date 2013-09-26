@@ -45,8 +45,9 @@ QuadServer::QuadServer(OverlayKey k){
     neighbours.clear();
 }
 
-QuadServer::QuadServer(double x, double y)
+QuadServer::QuadServer(OverlayKey k, double x, double y)
 {
+    key = k;
     loc = Point(x,y);
     lvl = 0;
     cell.n = 0;
