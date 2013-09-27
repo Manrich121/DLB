@@ -29,7 +29,7 @@ class QuadtreeApp: public BaseApp {
     cMessage *setupMessage;
 
     //params
-    unsigned int maxServers;
+    int maxServers;
     int clientCount;
     bool master;
     OverlayKey myKey;

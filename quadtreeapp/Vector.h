@@ -14,7 +14,7 @@
 #define VECTOR_H
 
 #include <cmath>
-#define PI 3.141592
+//#define PI 3.141592
 
 class Vector
 {
