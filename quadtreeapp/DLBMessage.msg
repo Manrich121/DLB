@@ -33,7 +33,9 @@ enum MessageType
     SERVER_MSG = 2;         // message used to transfer a server
     CLIENTRANS_MSG = 3;		// message used to transfer a client
     REQKEY_MSG = 4;			// message used by slave to request a new serverkey (Stored in senderKey)
-    DEBUG_MSG = 5;			// message used to test ping-pong funtions
+    RETSERV_MSG = 5;		// message used to return a child server to its parent
+    FREEME_MSG = 7;			// message used to free a child server after returning to its parent
+    DEBUG_MSG = 6;			// message used to test ping-pong funtions
 }
 
 packet DLBMessage {

@@ -347,7 +347,7 @@ std::vector<Client*> QuadServer::checkOwnership() {
     for (it = tmp.begin(); it != tmp.end(); ++it) {
         if (!this->ownership(*it)) {
             notMine.push_back(*it);
-//            this->myClients.erase(*it);
+            this->myClients.erase(*it);
         }
     }
     return notMine;

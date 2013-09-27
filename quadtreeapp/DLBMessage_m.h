@@ -35,7 +35,9 @@ typedef std::vector<Client*> clientVect;
  *     SERVER_MSG = 2;         
  *     CLIENTRANS_MSG = 3;		
  *     REQKEY_MSG = 4;			
- *     DEBUG_MSG = 5;			
+ *     RETSERV_MSG = 5;		
+ *     FREEME_MSG = 7;			
+ *     DEBUG_MSG = 6;			
  * }
  * </pre>
  */
@@ -44,7 +46,9 @@ enum MessageType {
     SERVER_MSG = 2,
     CLIENTRANS_MSG = 3,
     REQKEY_MSG = 4,
-    DEBUG_MSG = 5
+    RETSERV_MSG = 5,
+    FREEME_MSG = 7,
+    DEBUG_MSG = 6
 };
 
 /**

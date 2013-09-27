@@ -51,6 +51,8 @@ class QuadtreeApp: public BaseApp {
     void checkLoad();
     OverlayKey getNewServerKey();
     void sendNewServer(OverlayKey newKey);
+    void returnServer(QuadServer* retServer);
+
 
 public:
     QuadtreeApp(){ticTimer = NULL;

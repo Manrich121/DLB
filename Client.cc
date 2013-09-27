@@ -20,6 +20,8 @@
 Client::Client() {
     loc = Point();
 }
+Client::~Client() {
+}
 
 Client::Client(Point p, int max) {
     loc = p;

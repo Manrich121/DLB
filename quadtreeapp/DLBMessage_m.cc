@@ -37,6 +37,8 @@ EXECUTE_ON_STARTUP(
     e->insert(SERVER_MSG, "SERVER_MSG");
     e->insert(CLIENTRANS_MSG, "CLIENTRANS_MSG");
     e->insert(REQKEY_MSG, "REQKEY_MSG");
+    e->insert(RETSERV_MSG, "RETSERV_MSG");
+    e->insert(FREEME_MSG, "FREEME_MSG");
     e->insert(DEBUG_MSG, "DEBUG_MSG");
 );
 

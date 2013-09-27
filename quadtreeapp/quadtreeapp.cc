@@ -130,6 +130,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                 }else{
                     if (msg == setupMessage){
                         myKey = this->overlay->getThisNode().getKey();
+                        sCount = 0;
                         if(master){
                             clientAddTimer = new cMessage("Client: Add or Remove");
                             scheduleAt(simTime() + 1, clientAddTimer);
@@ -250,6 +251,31 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
             delete msg;
         }
         }break;
+    case RETSERV_MSG: {
+        // Create new QuadServer object and assign values to it
+        QuadServer retServer = myMsg->getTransferServer();
+        EV << "**************\nQuadtreeApp::deliver => " << myKey << " Got return server" << std::endl;
+        EV << "Parent key : " << retServer.parent->key << std::endl;
+
+        returnServer(&retServer);
+
+        DLBMessage* freeMsg = new DLBMessage();
+        freeMsg->setType(FREEME_MSG);
+        freeMsg->setSenderKey(retServer.key);
+        freeMsg->setByteLength(sizeof(retServer.key));
+
+        callRoute(thisServer->masterKey, freeMsg);
+        EV << "**************" << std::endl;
+
+    }delete msg; break;
+    case FREEME_MSG: {
+        // Test to see if I am master
+        if(master){
+            inUse.erase(myMsg->getSenderKey());
+            sCount--;
+            EV << "**************\n Erased inUse["<<myMsg->getSenderKey() << "]" << std::endl;
+        }
+    }delete msg; break;
     }
 }
 
@@ -264,6 +290,7 @@ void QuadtreeApp::removeClient() {
     if (thisServer->myClients.size() > 0){
         EV << "##############QuadtreeApp::removeClient => " << thisNode.getIp() << " Client: " << (*thisServer->myClients.rbegin())->loc.x() << ", " << (*thisServer->myClients.rbegin())->loc.y();
         EV << "##############"<< std::endl;
+//        delete *thisServer->myClients.rbegin();
         thisServer->myClients.erase(*thisServer->myClients.rbegin());
         clientCount--;
     }
@@ -273,10 +300,10 @@ void QuadtreeApp::clientUpdate() {
     set <Client*>::iterator it;
     set <Client*>::iterator tmp;
     std::vector<Client*> notMine;
+
     EV << "------------ "<< thisNode.getIp()<< " Update " << thisServer->myClients.size() << " Clients--------------" << std::endl;
     for (it = thisServer->myClients.begin(); it != thisServer->myClients.end();it++) {
        (*it)->move();
-//       EV << "QuadTreeApp::clientUpdate: " << (*it)->loc.x() << ", " << (*it)->loc.y() << std::endl;
        if (!thisServer->ownership(*it)){
            EV << "QuadTreeApp::clientUpdate: Transfer client: " << (*it)->loc.x() << ", " << (*it)->loc.y() << std::endl;
            notMine.push_back(*it);
@@ -284,7 +311,6 @@ void QuadtreeApp::clientUpdate() {
            clientCount--;
        }
     }
-//    EV << "------------ Update Clients--------------" << std::endl;
 
     if (notMine.size() > 0) {
         EV << "------------Transfer Clients--------------" << std::endl;
@@ -298,6 +324,7 @@ void QuadtreeApp::clientUpdate() {
         clientTMsg->setSenderKey(myKey);
         clientTMsg->setClients(notMine);
         clientTMsg->setByteLength(sizeof(notMine)); // set the message length to the size of the vector notMine
+
         for(sit = thisServer->neighbours.begin(); sit != thisServer->neighbours.end(); sit++) {
             DLBMessage* dupmsg;
             dupmsg = clientTMsg->dup();
@@ -330,7 +357,30 @@ void QuadtreeApp::checkLoad() {
         }
     }else{
         if(thisServer->underLoaded()) {
-            EV << "QuadtreeApp::checkLoad " << thisNode.getIp() << " underload transfering area and clients to parent (if possible)" << std::endl;
+            if (thisServer->parent != NULL && thisServer->parent->lvl == thisServer->lvl && thisServer->childCount == 0) {
+                EV << "******************** Underload **********************" << std::endl;
+                EV << "QuadtreeApp::checkLoad " << thisNode.getIp() << " underload transfering area and clients to parent (if possible)" << std::endl;
+
+                DLBMessage* sretMsg = new DLBMessage();
+                sretMsg->setType(RETSERV_MSG);
+                sretMsg->setSenderKey(myKey);
+                sretMsg->setTransferServer(*thisServer);
+                sretMsg->setByteLength(sizeof(*thisServer));
+
+                callRoute(thisServer->parent->key, sretMsg);
+
+//                delete thisServer;
+//                thisServer = NULL;
+                clientCount = 0;
+                //Cancel all timers
+                cancelAndDelete(serverTimer);
+                cancelAndDelete(clientMoveTimer);
+                cancelAndDelete(clientAddTimer);
+                cancelAndDelete(ticTimer);
+                EV << "Cancel all timers" << std::endl;
+                EV << "******************** Underload **********************" << std::endl;
+
+            }
         }
     }
 }
@@ -375,6 +425,38 @@ void QuadtreeApp::sendNewServer( OverlayKey newKey) {
         callRoute(newKey, myMessage);
     }
     EV << "+++++++++++++++++ SendNewServer ++++++++++++++++++" << std::endl;
+}
+
+void QuadtreeApp::returnServer(QuadServer* retServer) {
+
+    set <Client*>::iterator cit;
+    set <QuadServer*>::iterator it;
+
+    EV << "thisServer stuff" << std::endl;
+    thisServer->childCount--;
+    thisServer->addRect(*retServer->cell.rect.rbegin());
+    thisServer->merge();
+
+    EV << "Transfer all myClients" << std::endl;
+    // Transfer all myClients
+    for (cit = retServer->myClients.begin(); cit != retServer->myClients.end();cit++) {
+        thisServer->myClients.insert(*cit);
+    }
+    this->clientCount = thisServer->myClients.size();
+
+    EV << "Update neigbours" << std::endl;
+    // Remove me from all neighbour lists
+    for(it = retServer->neighbours.begin(); it != retServer->neighbours.end(); it++) {
+        thisServer->addAdjacent(*it);
+//            (*it)->neighbours.erase(this);
+    }
+
+    retServer->lvl = -1;
+
+    EV << "myClients.size() : " << retServer->myClients.size() << std::endl;
+    EV << "myNeighbours.size() : " << retServer->neighbours.size() << std::endl;
+    EV << "Lvl : " << retServer->lvl << std::endl;
+
 }
 
 
