@@ -32,9 +32,10 @@ typedef std::vector<Client*> clientVect;
  * enum MessageType 
  * {
  *     LOC_MSG = 1;            
- *     SERVER_MSG = 2;           
+ *     SERVER_MSG = 2;         
  *     CLIENTRANS_MSG = 3;		
- *     DEBUG_MSG = 4;			
+ *     REQKEY_MSG = 4;			
+ *     DEBUG_MSG = 5;			
  * }
  * </pre>
  */
@@ -42,7 +43,8 @@ enum MessageType {
     LOC_MSG = 1,
     SERVER_MSG = 2,
     CLIENTRANS_MSG = 3,
-    DEBUG_MSG = 4
+    REQKEY_MSG = 4,
+    DEBUG_MSG = 5
 };
 
 /**

@@ -73,6 +73,7 @@ class QuadServer {
     QuadServer(OverlayKey k, double x, double y);
     QuadServer(OverlayKey k);
 
+    void setMasterKey(OverlayKey k);
     void printNeighbourLocs();
     bool isLoaded();
     bool underLoaded();
@@ -94,6 +95,7 @@ class QuadServer {
 
 // Params
     OverlayKey key;
+    OverlayKey masterKey;
     Point loc;
     int lvl;
     Cell cell;

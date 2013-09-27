@@ -61,6 +61,10 @@ QuadServer::QuadServer(OverlayKey k, double x, double y)
 QuadServer::~QuadServer() {
 }
 
+void QuadServer::setMasterKey(OverlayKey k) {
+    this->masterKey = k;
+}
+
 bool QuadServer::isLoaded() {
     return this->myClients.size()>MAXCLIENTS;
 }

@@ -30,9 +30,10 @@ class noncobject clientVect;
 enum MessageType 
 {
     LOC_MSG = 1;            // message used to send a location
-    SERVER_MSG = 2;           // message used to check a server load
+    SERVER_MSG = 2;         // message used to transfer a server
     CLIENTRANS_MSG = 3;		// message used to transfer a client
-    DEBUG_MSG = 4;			// message used to test ping-pong funtions
+    REQKEY_MSG = 4;			// message used by slave to request a new serverkey (Stored in senderKey)
+    DEBUG_MSG = 5;			// message used to test ping-pong funtions
 }
 
 packet DLBMessage {

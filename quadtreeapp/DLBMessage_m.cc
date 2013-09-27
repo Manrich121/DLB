@@ -36,6 +36,7 @@ EXECUTE_ON_STARTUP(
     e->insert(LOC_MSG, "LOC_MSG");
     e->insert(SERVER_MSG, "SERVER_MSG");
     e->insert(CLIENTRANS_MSG, "CLIENTRANS_MSG");
+    e->insert(REQKEY_MSG, "REQKEY_MSG");
     e->insert(DEBUG_MSG, "DEBUG_MSG");
 );
 
