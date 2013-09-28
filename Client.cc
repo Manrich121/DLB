@@ -27,6 +27,14 @@ Client::Client(Point p, int max) {
     loc = p;
     vx = rand()%3 +1;
     vy = rand()%3 +1;
+    int dir = rand()%100;
+    if (dir<50){
+        vx = -vx;
+    }
+    dir = rand()%100;
+    if(dir<50){
+        vy = -vy;
+    }
     edge = max;
 }
 

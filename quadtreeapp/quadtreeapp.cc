@@ -447,7 +447,8 @@ void QuadtreeApp::returnServer(QuadServer* retServer) {
     EV << "Update neigbours" << std::endl;
     // Remove me from all neighbour lists
     for(it = retServer->neighbours.begin(); it != retServer->neighbours.end(); it++) {
-        thisServer->addAdjacent(*it);
+        // TODO: Handle neighbours
+//        thisServer->addAdjacent(*it);
 //            (*it)->neighbours.erase(this);
     }
 
