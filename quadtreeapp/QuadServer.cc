@@ -208,28 +208,10 @@ bool QuadServer::transfer(QuadServer *t) {
     t->parent = this;
     this->childCount++;
 
-    t->addAdjacent(this);
+    // Update neighbour list
+    this->neighbours.insert(t->key);
+    t->neighbours.insert(this->key);
 
-//    std::vector<Client*> notMine = this->checkOwnership();
-
-    // test all neighbours possible adjacent
-    set <QuadServer*>::iterator it;
-    set <QuadServer*> tmpNeig = this->neighbours;
-    for(it = tmpNeig.begin(); it != tmpNeig.end(); it++) {
-        if ((*it)!=t) {
-            t->addAdjacent(*it);
-            (*it)->neighbours.erase(this);
-            (*it)->addAdjacent(this);
-            this->neighbours.erase(*it);
-            this->addAdjacent(*it);
-        }
-
-//        for(unsigned int i=0; i<notMine.size();i++){
-//            if ((*it)->ownership(notMine.at(i))) {
-//                (*it)->myClients.insert(notMine.at(i));
-//            }
-//        }
-    }
 
 #ifdef _DEBUG
     if (this->neighbours.size() > 8) {
@@ -262,10 +244,10 @@ bool QuadServer::returnArea() {
         this->parent->checkOwnership();
 
         // Remove me from all neighbour lists
-        for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-            this->parent->addAdjacent(*it);
-            (*it)->neighbours.erase(this);
-        }
+//        for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
+//            this->parent->addAdjacent(*it);
+//            (*it)->neighbours.erase(this);
+//        }
 
         // Set lvl be deleted
         this->lvl = -1;
@@ -302,33 +284,22 @@ bool QuadServer::insideArea(Point* tp) {
  *      |       |
  */
 
-void QuadServer::addAdjacent(QuadServer* t) {
+bool QuadServer::adjacent(std::list<Rectangle*> *rects) {
     std::list<Rectangle*>::iterator rit;
     Rectangle* tRect;
-    bool neigh = false;
-
-    if (this == t) {
-        return;
-    }
 
     Point *p3, *p4;
-    for (rit = t->cell.rect.begin(); rit != t->cell.rect.end(); rit++) {
+    for (rit = rects->begin(); rit != rects->end(); rit++) {
         tRect = (*rit);
         p3 = new Point(tRect->botRight.x(),tRect->topLeft.y());
         p4 = new Point(tRect->topLeft.x(), tRect->botRight.y());
 
         if (this->insideArea(&tRect->topLeft) || this->insideArea(&tRect->botRight) ||
                 this->insideArea(p3) || this->insideArea(p4)) {
-            neigh = true;
-            break;
+            return true;
         }
-
     }
-
-    if (neigh) {
-        this->neighbours.insert(t);
-        t->neighbours.insert(this);
-    }
+    return false;
 }
 
 bool QuadServer::ownership(Client* c) {
@@ -354,10 +325,10 @@ std::vector<Client*> QuadServer::checkOwnership() {
 }
 
 void QuadServer::printNeighbourLocs(){
-    set <QuadServer*>::iterator it;
+    set <OverlayKey>::iterator it;
     printf("My loc (%g,%g)\n",this->loc.x(),this->loc.y());
     for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-        printf("N's loc (%g,%g)\n",(*it)->loc.x(),(*it)->loc.y());
+        printf("N's loc %f\n",(*it).toDouble());
     }
 }
 

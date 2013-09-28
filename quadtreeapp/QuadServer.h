@@ -89,7 +89,7 @@ class QuadServer {
     bool transfer(QuadServer* t);   // Transfer one of the current server's most loaded rectangles to t
     bool returnArea();          // Selects less loaded neighbour in same lvl, else on lvl up;
     bool insideArea(Point* tp);  // Determines if the test point tp is inside the area of current server
-    void addAdjacent(QuadServer* t); // Determines if the Server t, and all its neighbours is adjacent to this, thus is a neighbour
+    bool adjacent(std::list<Rectangle*> *rect); // Determines if the Server t, and all its neighbours is adjacent to this, thus is a neighbour
     bool ownership(Client* c);
     std::vector<Client*> checkOwnership();
 
@@ -101,7 +101,7 @@ class QuadServer {
     Cell cell;
     QuadServer* parent;
     int childCount;
-    std::set<QuadServer*> neighbours;
+    std::set<OverlayKey> neighbours;
     std::set<Client*> myClients;
 };
 

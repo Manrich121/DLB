@@ -202,10 +202,13 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         EV << "Loc : (" << thisServer->loc.x() << "," << thisServer->loc.y() << ")\n"
              << "Key : " << thisServer->key << "\n"
              << "Neighbours size : " << thisServer->neighbours.size() << "\n"
+             << "neighbours[0] : " << *thisServer->neighbours.begin() << "\n"
              << "myClients.size : " << thisServer->myClients.size() << "\n"
              << "Rec: tl(" << thisServer->cell.rect.front()->topLeft.x() << "," << thisServer->cell.rect.front()->topLeft.y() << ")"
              << "br(" << thisServer->cell.rect.front()->botRight.x() << "," << thisServer->cell.rect.front()->botRight.y() << ")"
              << "\n+++++++++++++++" << std::endl;
+
+        updateNeighbours();
 
         // start client timer
         clientMoveTimer = new cMessage("ClientMove Timer");
@@ -276,6 +279,30 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
             EV << "**************\n Erased inUse["<<myMsg->getSenderKey() << "]" << std::endl;
         }
     }delete msg; break;
+    case NEIGH_REQ: {
+        std::list<Rectangle*> rects = myMsg->getRects();
+        OverlayKey senderKey = myMsg->getSenderKey();
+        delete myMsg;
+        if (thisServer->adjacent(&rects)) {
+            thisServer->neighbours.insert(senderKey);
+            DLBMessage* ackNeigh = new DLBMessage();
+            ackNeigh->setType(NEIGH_A_R);
+            ackNeigh->setSenderKey(myKey);
+            callRoute(senderKey, ackNeigh);
+            EV << "QuadtreeApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
+        }
+    }break;
+    case NEIGH_A_R : {
+        OverlayKey removeKey = myMsg->getRemoveKey();
+
+        if(!removeKey.isUnspecified()) {
+            thisServer->neighbours.erase(removeKey);
+            EV << "QuadtreeApp::" << thisNode.getIp() << " Remove key " << removeKey << std::endl;
+        }
+
+        thisServer->neighbours.insert(myMsg->getSenderKey());
+        EV << "QuadtreeApp::" << thisNode.getIp() << " Inserting new neighbour " << myMsg->getSenderKey() << std::endl;
+    }delete myMsg; break;
     }
 }
 
@@ -318,7 +345,7 @@ void QuadtreeApp::clientUpdate() {
            << "neighbours.size() : " << thisServer->neighbours.size() << std::endl;
 
         // Transfer clients to all my neighbours
-        set <QuadServer*>::iterator sit;
+        set <OverlayKey>::iterator sit;
         DLBMessage* clientTMsg = new DLBMessage();
         clientTMsg->setType(CLIENTRANS_MSG);
         clientTMsg->setSenderKey(myKey);
@@ -326,10 +353,8 @@ void QuadtreeApp::clientUpdate() {
         clientTMsg->setByteLength(sizeof(notMine)); // set the message length to the size of the vector notMine
 
         for(sit = thisServer->neighbours.begin(); sit != thisServer->neighbours.end(); sit++) {
-            DLBMessage* dupmsg;
-            dupmsg = clientTMsg->dup();
-            EV << "QuadTreeApp::clientUpdate => Transfer clients to " << (*sit)->key << std::endl;
-            callRoute((*sit)->key,dupmsg);
+            EV << "QuadTreeApp::clientUpdate => Transfer clients to " << *sit << std::endl;
+            callRoute(*sit,clientTMsg->dup());
         }
         delete clientTMsg;
         EV << "------------ Transfer Clients--------------" << std::endl;
@@ -406,7 +431,7 @@ OverlayKey QuadtreeApp::getNewServerKey() {
     return OverlayKey::UNSPECIFIED_KEY;
 }
 
-void QuadtreeApp::sendNewServer( OverlayKey newKey) {
+void QuadtreeApp::sendNewServer(OverlayKey newKey) {
     EV << "+++++++++++++++++ " << thisNode.getIp() << " SendNewServer ++++++++++++++++++" << std::endl;
     EV << "QuadtreeApp::sendNewServer to key: " << newKey << std::endl;
     QuadServer* newServer = new QuadServer(newKey); // Init a new server object with key=newKey
@@ -430,7 +455,7 @@ void QuadtreeApp::sendNewServer( OverlayKey newKey) {
 void QuadtreeApp::returnServer(QuadServer* retServer) {
 
     set <Client*>::iterator cit;
-    set <QuadServer*>::iterator it;
+    set <OverlayKey>::iterator it;
 
     EV << "thisServer stuff" << std::endl;
     thisServer->childCount--;
@@ -445,19 +470,41 @@ void QuadtreeApp::returnServer(QuadServer* retServer) {
     this->clientCount = thisServer->myClients.size();
 
     EV << "Update neigbours" << std::endl;
+    DLBMessage *neighMsg = new DLBMessage();
+    neighMsg->setType(NEIGH_A_R);
+    neighMsg->setSenderKey(myKey);
+    neighMsg->setRemoveKey(retServer->key);
+    neighMsg->setByteLength(sizeof(myKey));
+
     // Remove me from all neighbour lists
     for(it = retServer->neighbours.begin(); it != retServer->neighbours.end(); it++) {
-        // TODO: Handle neighbours
-//        thisServer->addAdjacent(*it);
-//            (*it)->neighbours.erase(this);
+        callRoute(*it, neighMsg->dup());
     }
-
+    delete neighMsg;
     retServer->lvl = -1;
 
     EV << "myClients.size() : " << retServer->myClients.size() << std::endl;
     EV << "myNeighbours.size() : " << retServer->neighbours.size() << std::endl;
     EV << "Lvl : " << retServer->lvl << std::endl;
+}
 
+void QuadtreeApp::updateNeighbours() {
+    EV << "+++++++++++++++++ " << thisNode.getIp() << " UpdateNeighs ++++++++++++++++++" << std::endl;
+    std::set<OverlayKey>::iterator it;
+
+    DLBMessage *rectMsg = new DLBMessage();
+    rectMsg->setType(NEIGH_REQ);
+    rectMsg->setSenderKey(myKey);
+    rectMsg->setRects(thisServer->cell.rect);
+    rectMsg->setByteLength(sizeof(thisServer->cell.rect));
+
+    for (it = thisServer->parent->neighbours.begin(); it != thisServer->parent->neighbours.end(); it++) {
+        if(*it != myKey)
+            callRoute(*it, rectMsg->dup());
+    }
+
+    delete rectMsg;
+    EV << "+++++++++++++++++ UpdateNeighs ++++++++++++++++++" << std::endl;
 }
 
 

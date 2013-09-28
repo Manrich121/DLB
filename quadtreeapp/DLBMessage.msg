@@ -24,8 +24,10 @@ cplusplus {{
 #include <vector>
 #include "Client.h"
 typedef std::vector<Client*> clientVect;
+typedef std::list<Rectangle*> rectVect;
 }}
 class noncobject clientVect;
+class noncobject rectVect;
 
 enum MessageType 
 {
@@ -34,8 +36,10 @@ enum MessageType
     CLIENTRANS_MSG = 3;		// message used to transfer a client
     REQKEY_MSG = 4;			// message used by slave to request a new serverkey (Stored in senderKey)
     RETSERV_MSG = 5;		// message used to return a child server to its parent
-    FREEME_MSG = 7;			// message used to free a child server after returning to its parent
-    DEBUG_MSG = 6;			// message used to test ping-pong funtions
+    FREEME_MSG = 6;			// message used to free a child server after returning to its parent
+    NEIGH_REQ = 7;			// message used to transfer thisServer's rectangles
+    NEIGH_A_R = 8;			// message used to add or remove the sender as a neighbour
+    DEBUG_MSG = 9;			// message used to test ping-pong funtions
 }
 
 packet DLBMessage {
@@ -43,5 +47,7 @@ packet DLBMessage {
     int type enum(MessageType);      // message type
 	QuadServer transferServer;
 	OverlayKey senderKey; 			// The key of the sender of this message
-    clientVect clients;
+    clientVect clients;				// A vector of client pointers to be check for ownerships
+    rectVect rects;					// a list of rectangles send to be evaluated for neighbourship
+    OverlayKey removeKey;			// indicating if requesting neighbour add or remove 
 }

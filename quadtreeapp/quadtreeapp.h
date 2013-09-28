@@ -52,6 +52,7 @@ class QuadtreeApp: public BaseApp {
     OverlayKey getNewServerKey();
     void sendNewServer(OverlayKey newKey);
     void returnServer(QuadServer* retServer);
+    void updateNeighbours();
 
 
 public:

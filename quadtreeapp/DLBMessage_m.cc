@@ -39,6 +39,8 @@ EXECUTE_ON_STARTUP(
     e->insert(REQKEY_MSG, "REQKEY_MSG");
     e->insert(RETSERV_MSG, "RETSERV_MSG");
     e->insert(FREEME_MSG, "FREEME_MSG");
+    e->insert(NEIGH_REQ, "NEIGH_REQ");
+    e->insert(NEIGH_A_R, "NEIGH_A_R");
     e->insert(DEBUG_MSG, "DEBUG_MSG");
 );
 
@@ -72,6 +74,8 @@ void DLBMessage::copy(const DLBMessage& other)
     this->transferServer_var = other.transferServer_var;
     this->senderKey_var = other.senderKey_var;
     this->clients_var = other.clients_var;
+    this->rects_var = other.rects_var;
+    this->removeKey_var = other.removeKey_var;
 }
 
 void DLBMessage::parsimPack(cCommBuffer *b)
@@ -81,6 +85,8 @@ void DLBMessage::parsimPack(cCommBuffer *b)
     doPacking(b,this->transferServer_var);
     doPacking(b,this->senderKey_var);
     doPacking(b,this->clients_var);
+    doPacking(b,this->rects_var);
+    doPacking(b,this->removeKey_var);
 }
 
 void DLBMessage::parsimUnpack(cCommBuffer *b)
@@ -90,6 +96,8 @@ void DLBMessage::parsimUnpack(cCommBuffer *b)
     doUnpacking(b,this->transferServer_var);
     doUnpacking(b,this->senderKey_var);
     doUnpacking(b,this->clients_var);
+    doUnpacking(b,this->rects_var);
+    doUnpacking(b,this->removeKey_var);
 }
 
 int DLBMessage::getType() const
@@ -130,6 +138,26 @@ clientVect& DLBMessage::getClients()
 void DLBMessage::setClients(const clientVect& clients)
 {
     this->clients_var = clients;
+}
+
+rectVect& DLBMessage::getRects()
+{
+    return rects_var;
+}
+
+void DLBMessage::setRects(const rectVect& rects)
+{
+    this->rects_var = rects;
+}
+
+OverlayKey& DLBMessage::getRemoveKey()
+{
+    return removeKey_var;
+}
+
+void DLBMessage::setRemoveKey(const OverlayKey& removeKey)
+{
+    this->removeKey_var = removeKey;
 }
 
 class DLBMessageDescriptor : public cClassDescriptor
@@ -179,7 +207,7 @@ const char *DLBMessageDescriptor::getProperty(const char *propertyname) const
 int DLBMessageDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 4+basedesc->getFieldCount(object) : 4;
+    return basedesc ? 6+basedesc->getFieldCount(object) : 6;
 }
 
 unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -195,8 +223,10 @@ unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) co
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
+        FD_ISCOMPOUND,
+        FD_ISCOMPOUND,
     };
-    return (field>=0 && field<4) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<6) ? fieldTypeFlags[field] : 0;
 }
 
 const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
@@ -212,8 +242,10 @@ const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
         "transferServer",
         "senderKey",
         "clients",
+        "rects",
+        "removeKey",
     };
-    return (field>=0 && field<4) ? fieldNames[field] : NULL;
+    return (field>=0 && field<6) ? fieldNames[field] : NULL;
 }
 
 int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
@@ -224,6 +256,8 @@ int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
     if (fieldName[0]=='t' && strcmp(fieldName, "transferServer")==0) return base+1;
     if (fieldName[0]=='s' && strcmp(fieldName, "senderKey")==0) return base+2;
     if (fieldName[0]=='c' && strcmp(fieldName, "clients")==0) return base+3;
+    if (fieldName[0]=='r' && strcmp(fieldName, "rects")==0) return base+4;
+    if (fieldName[0]=='r' && strcmp(fieldName, "removeKey")==0) return base+5;
     return basedesc ? basedesc->findField(object, fieldName) : -1;
 }
 
@@ -240,8 +274,10 @@ const char *DLBMessageDescriptor::getFieldTypeString(void *object, int field) co
         "QuadServer",
         "OverlayKey",
         "clientVect",
+        "rectVect",
+        "OverlayKey",
     };
-    return (field>=0 && field<4) ? fieldTypeStrings[field] : NULL;
+    return (field>=0 && field<6) ? fieldTypeStrings[field] : NULL;
 }
 
 const char *DLBMessageDescriptor::getFieldProperty(void *object, int field, const char *propertyname) const
@@ -288,6 +324,8 @@ std::string DLBMessageDescriptor::getFieldAsString(void *object, int field, int 
         case 1: {std::stringstream out; out << pp->getTransferServer(); return out.str();}
         case 2: {std::stringstream out; out << pp->getSenderKey(); return out.str();}
         case 3: {std::stringstream out; out << pp->getClients(); return out.str();}
+        case 4: {std::stringstream out; out << pp->getRects(); return out.str();}
+        case 5: {std::stringstream out; out << pp->getRemoveKey(); return out.str();}
         default: return "";
     }
 }
@@ -320,8 +358,10 @@ const char *DLBMessageDescriptor::getFieldStructName(void *object, int field) co
         "QuadServer",
         "OverlayKey",
         "clientVect",
+        "rectVect",
+        "OverlayKey",
     };
-    return (field>=0 && field<4) ? fieldStructNames[field] : NULL;
+    return (field>=0 && field<6) ? fieldStructNames[field] : NULL;
 }
 
 void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i) const
@@ -337,6 +377,8 @@ void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i
         case 1: return (void *)(&pp->getTransferServer()); break;
         case 2: return (void *)(&pp->getSenderKey()); break;
         case 3: return (void *)(&pp->getClients()); break;
+        case 4: return (void *)(&pp->getRects()); break;
+        case 5: return (void *)(&pp->getRemoveKey()); break;
         default: return NULL;
     }
 }
