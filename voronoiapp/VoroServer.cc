@@ -43,6 +43,7 @@ VoroServer::~VoroServer() {
 
 VoroServer::VoroServer(OverlayKey k, double x, double y)
 {
+    key = k;
     loc = Point(x,y);
     lvl = 0;
     cell.n = 0;
@@ -90,8 +91,13 @@ void VoroServer::refine(VoroServer* t) {
     t->loc = this->getCenterofClients();
 
     this->neighbours[t->key] = t->loc;
+    t->neighbours[this->key] = this->loc;
+
+    t->parent = this;
+    this->childCount++;
 
     this->generateVoronoi();
+    t->generateVoronoi();
 
 //  TODO: Notify neighbours to generate their voronoi's
 //    for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
@@ -273,8 +279,8 @@ bool VoroServer::ownership(Client* c) {
     return this->pointInPolygon(c->loc);
 }
 
-bool VoroServer::isNeigh(VoroServer* t) {
-    Point mid = middle(this->loc, t->loc);        // Calulate midpoint
+bool VoroServer::isNeigh(Point tloc) {
+    Point mid = middle(this->loc, tloc);        // Calulate midpoint
     return (this->loc.dist(mid) <= this->cell.rmax);
 }
 

@@ -139,10 +139,12 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                             this->clientMoveTimer = new cMessage("ClientMove Timer");
                             scheduleAt(simTime() + 0.2, clientMoveTimer);
 
-//                            serverTimer = new cMessage("Server load check");
-//                            scheduleAt(simTime() + 2, serverTimer);
-                            std::vector<Point> p;
+                            serverTimer = new cMessage("Server load check");
+                            scheduleAt(simTime() + 2, serverTimer);
+
                             thisServer = new VoroServer(myKey, WIDTH/2,WIDTH/2);
+                            // Add first area
+                            std::vector<Point> p;
                             p.push_back(Point(WIDTH,0));
                             p.push_back(Point(WIDTH,WIDTH));
                             p.push_back(Point(0,0));
@@ -209,6 +211,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
              << "Neighbours size : " << thisServer->neighbours.size() << "\n"
              << "neighbours[0] : " << (*thisServer->neighbours.begin()).first << "\n"
              << "myClients.size : " << thisServer->myClients.size() << "\n"
+             << "cell.n :: " << thisServer->cell.n << "\n"
              << "\n+++++++++++++++" << std::endl;
 
         updateNeighbours();
@@ -217,9 +220,9 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         clientMoveTimer = new cMessage("ClientMove Timer");
         scheduleAt(simTime() + 0.5, clientMoveTimer);
 
-        // start load Check timer
-        serverTimer = new cMessage("Server load check");
-        scheduleAt(simTime() + 2, serverTimer);
+        //TODO: start load Check timer
+//        serverTimer = new cMessage("Server load check");
+//        scheduleAt(simTime() + 2, serverTimer);
 
         }delete msg; break;
     case CLIENTRANS_MSG: {
@@ -285,14 +288,16 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
     case NEIGH_REQ: {
         OverlayKey senderKey = myMsg->getSenderKey();
         delete myMsg;
-//        if (thisServer->adjacent(&rects)) {
-//            thisServer->neighbours.insert(senderKey);
-//            DLBMessage* ackNeigh = new DLBMessage();
-//            ackNeigh->setType(NEIGH_A_R);
-//            ackNeigh->setSenderKey(myKey);
-//            callRoute(senderKey, ackNeigh);
-//            EV << "VoronoiApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
-//        }
+        if (thisServer->isNeigh(myMsg->getSenderLoc())){
+            thisServer->neighbours[senderKey] = myMsg->getSenderLoc();
+
+            DLBMessage* ackNeigh = new DLBMessage();
+            ackNeigh->setType(NEIGH_A_R);
+            ackNeigh->setSenderKey(myKey);
+            ackNeigh->setSenderLoc(thisServer->loc);
+            callRoute(senderKey, ackNeigh);
+            EV << "VoronoiApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
+        }
     }break;
     case NEIGH_A_R : {
         OverlayKey removeKey = myMsg->getRemoveKey();
@@ -498,8 +503,8 @@ void VoronoiApp::updateNeighbours() {
     DLBMessage *rectMsg = new DLBMessage();
     rectMsg->setType(NEIGH_REQ);
     rectMsg->setSenderKey(myKey);
-//    rectMsg->setRects(thisServer->cell.rect);
-//    rectMsg->setByteLength(sizeof(thisServer->cell.rect));
+    rectMsg->setSenderLoc(thisServer->loc);
+    rectMsg->setByteLength(sizeof(thisServer->loc));
 
     for (it = thisServer->parent->neighbours.begin(); it != thisServer->parent->neighbours.end(); it++) {
         if((*it).first != myKey)
