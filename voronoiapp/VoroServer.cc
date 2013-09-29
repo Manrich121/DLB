@@ -36,9 +36,6 @@ VoroServer::VoroServer(OverlayKey k){
 }
 
 VoroServer::~VoroServer() {
-//    this->deleteCell();
-//    delete this->cell.origin;
-//    delete parent;
 }
 
 VoroServer::VoroServer(OverlayKey k, double x, double y)
@@ -98,6 +95,18 @@ void VoroServer::refine(VoroServer* t) {
 
     this->generateVoronoi();
     t->generateVoronoi();
+    set <Client*>::iterator cit;
+
+
+    set<Client*> tmpSet = myClients;
+    for (cit = this->myClients.begin(); cit != this->myClients.end();cit++) {
+        if (t->ownership(*cit)){
+            t->myClients.insert(*cit);
+            tmpSet.erase(*cit);
+        }
+    }
+
+    this->myClients = tmpSet;
 
 //  TODO: Notify neighbours to generate their voronoi's
 //    for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {

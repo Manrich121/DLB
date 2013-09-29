@@ -209,6 +209,19 @@ bool QuadServer::transfer(QuadServer *t) {
     this->neighbours.insert(t->key);
     t->neighbours.insert(this->key);
 
+    set<Client*>::iterator cit;
+    set<Client*> tmpSet = this->myClients;
+
+    // Transfer clients not own by this
+    for(cit =this->myClients.begin(); cit != this->myClients.end();cit++){
+        if (t->ownership(*cit)){
+            tmpSet.erase(*cit);
+            t->myClients.insert(*cit);
+        }
+    }
+
+    this->myClients = tmpSet;
+
 
 #ifdef _DEBUG
     if (this->neighbours.size() > 8) {
