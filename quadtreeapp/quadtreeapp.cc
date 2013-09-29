@@ -196,7 +196,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
     case SERVER_MSG : {
         // Create new QuadServer object and assign values to it
         thisServer = new QuadServer;
-        *thisServer = myMsg->getTransferServer();
+        *thisServer = myMsg->getQuadServer();
         this->clientCount = thisServer->myClients.size();
         EV << "+++++++++++++++++\nQuadtreeApp::deliver => " << myKey << " Got my new server state" << std::endl;
         EV << "Loc : (" << thisServer->loc.x() << "," << thisServer->loc.y() << ")\n"
@@ -256,7 +256,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         }break;
     case RETSERV_MSG: {
         // Create new QuadServer object and assign values to it
-        QuadServer retServer = myMsg->getTransferServer();
+        QuadServer retServer = myMsg->getQuadServer();
         EV << "**************\nQuadtreeApp::deliver => " << myKey << " Got return server" << std::endl;
         EV << "Parent key : " << retServer.parent->key << std::endl;
 
@@ -389,7 +389,7 @@ void QuadtreeApp::checkLoad() {
                 DLBMessage* sretMsg = new DLBMessage();
                 sretMsg->setType(RETSERV_MSG);
                 sretMsg->setSenderKey(myKey);
-                sretMsg->setTransferServer(*thisServer);
+                sretMsg->setQuadServer(*thisServer);
                 sretMsg->setByteLength(sizeof(*thisServer));
 
                 callRoute(thisServer->parent->key, sretMsg);
@@ -444,7 +444,7 @@ void QuadtreeApp::sendNewServer(OverlayKey newKey) {
         myMessage->setType(SERVER_MSG); // set the message type to LOC_MSG
         myMessage->setSenderKey(myKey);  // Store this
         myMessage->setByteLength(sizeof(*newServer)); // set the message length to 100 bytes
-        myMessage->setTransferServer(*newServer);
+        myMessage->setQuadServer(*newServer);
 
         EV << "QuadtreeApp::checkLoad => Overloaded and setting up new server, key: " << newKey << " MyLoc (" << thisServer->loc.x() << "," << thisServer->loc.y()
                 << ") NewServloc (" << newServer->loc.x() << "," << newServer->loc.y() << ")"<< std::endl;

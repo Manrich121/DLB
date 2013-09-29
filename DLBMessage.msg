@@ -16,18 +16,22 @@
 cplusplus {{
 #include <OverlayKey.h>
 #include "QuadServer.h"
+#include "VoroServer.h"
 }}
 class noncobject OverlayKey;
 class noncobject QuadServer;
+class noncobject VoroServer;
 
 cplusplus {{
 #include <vector>
 #include "Client.h"
+#include "Point.h"
 typedef std::vector<Client*> clientVect;
 typedef std::list<Rectangle*> rectVect;
 }}
 class noncobject clientVect;
 class noncobject rectVect;
+class noncobject Point;
 
 enum MessageType 
 {
@@ -43,11 +47,19 @@ enum MessageType
 }
 
 packet DLBMessage {
-
+	// General
     int type enum(MessageType);      // message type
-	QuadServer transferServer;
 	OverlayKey senderKey; 			// The key of the sender of this message
     clientVect clients;				// A vector of client pointers to be check for ownerships
-    rectVect rects;					// a list of rectangles send to be evaluated for neighbourship
-    OverlayKey removeKey;			// indicating if requesting neighbour add or remove 
+ 	OverlayKey removeKey;			// indicating if requesting neighbour add or remove 	
+    // Quadtree
+	QuadServer quadServer;			// Used to transfer a quadtree server
+	rectVect rects;					// a list of rectangles send to be evaluated for neighbourship
+	// Voronoi
+	VoroServer voroServer;			// Used to transfer a voronoi server
+	Point senderLoc;
+
+    
+    
+   
 }

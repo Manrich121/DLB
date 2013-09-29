@@ -33,21 +33,6 @@
 #define MINCLIENTS 1
 #define WIDTH 800
 
-class Vertex {
-public:
-    Vertex(Point a){
-        loc = a;
-        next = NULL;
-    }
-    ~Vertex() {
-        delete &loc;
-    }
-
-    Point loc;
-    Vertex* next;            // Pointer to next vertex in polygon
-    Vertex* prev;
-};
-
 class Rectangle {
 public:
     Rectangle(Point tL, Point bR) {
@@ -62,7 +47,6 @@ public:
 struct Cell {
     int n;
     double rmax;
-    Vertex* origin;             // pointer to origin of polygon Assume counter clockwise sequence
     std::list<Rectangle*> rect;  // A Set of point Rectangle objects each defining a rectangle
 };
 

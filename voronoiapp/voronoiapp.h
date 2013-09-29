@@ -16,7 +16,48 @@
 #ifndef VORONOIAPP_H_
 #define VORONOIAPP_H_
 
-class voronoiapp {
+#include <omnetpp.h>
+#include "BaseApp.h"
+#include "VoroServer.h"
+
+class VoronoiApp: public BaseApp {
+    // Self timer messages
+    cMessage *ticTimer;
+    cMessage *serverTimer;
+    cMessage *clientAddTimer;
+    cMessage *clientMoveTimer;
+    cMessage *setupMessage;
+
+    //params
+    int maxServers;
+    int clientCount;
+    bool master;
+    OverlayKey myKey;
+    VoroServer* thisServer;
+
+    // Master server params
+    int sCount;
+    std::set<OverlayKey> inUse;
+
+    // application routines
+    void initializeApp(int stage);                 // called when the module is being created
+    void finishApp();                              // called when the module is about to be destroyed
+    void handleTimerEvent(cMessage* msg);          // called when we received a timer message
+    void deliver(OverlayKey& key, cMessage* msg);  // called when we receive a message from the overlay
+
+    void addClient();
+    void removeClient();
+    void clientUpdate();
+    void checkLoad();
+    OverlayKey getNewServerKey();
+    void sendNewServer(OverlayKey newKey);
+    void returnServer(VoroServer* retServer);
+    void updateNeighbours();
+
+public:
+    VoronoiApp(){ticTimer = NULL;
+    };
+    ~VoronoiApp(){ cancelAndDelete(ticTimer);};
 };
 
 #endif /* VORONOIAPP_H_ */

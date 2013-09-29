@@ -27,7 +27,6 @@ QuadServer::QuadServer(){
     lvl = -1;           // Set lvl to -1 indicationg that it has not been assigned
     cell.n = 0;
     childCount = 0;
-    cell.origin = NULL;
     parent = NULL;
     myClients.clear();
     neighbours.clear();
@@ -39,7 +38,6 @@ QuadServer::QuadServer(OverlayKey k){
     lvl = -1;           // Set lvl to -1 indicationg that it has not been assigned
     cell.n = 0;
     childCount = 0;
-    cell.origin = NULL;
     parent = NULL;
     myClients.clear();
     neighbours.clear();
@@ -52,7 +50,6 @@ QuadServer::QuadServer(OverlayKey k, double x, double y)
     lvl = 0;
     cell.n = 0;
     childCount = 0;
-    cell.origin = NULL;
     parent = NULL;
     myClients.clear();
     neighbours.clear();

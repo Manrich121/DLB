@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.2 from DLB/quadtreeapp/DLBMessage.msg.
+// Generated file, do not edit! Created by opp_msgc 4.2 from DLB/DLBMessage.msg.
 //
 
 #ifndef _DLBMESSAGE_M_H_
@@ -16,11 +16,13 @@
 // cplusplus {{
 #include <OverlayKey.h>
 #include "QuadServer.h"
+#include "VoroServer.h"
 // }}
 
 // cplusplus {{
 #include <vector>
 #include "Client.h"
+#include "Point.h"
 typedef std::vector<Client*> clientVect;
 typedef std::list<Rectangle*> rectVect;
 // }}
@@ -28,7 +30,7 @@ typedef std::list<Rectangle*> rectVect;
 
 
 /**
- * Enum generated from <tt>DLB/quadtreeapp/DLBMessage.msg</tt> by opp_msgc.
+ * Enum generated from <tt>DLB/DLBMessage.msg</tt> by opp_msgc.
  * <pre>
  * enum MessageType 
  * {
@@ -57,16 +59,24 @@ enum MessageType {
 };
 
 /**
- * Class generated from <tt>DLB/quadtreeapp/DLBMessage.msg</tt> by opp_msgc.
+ * Class generated from <tt>DLB/DLBMessage.msg</tt> by opp_msgc.
  * <pre>
  * packet DLBMessage {
- * 
+ * 	
  *     int type enum(MessageType);      
- * 	QuadServer transferServer;
  * 	OverlayKey senderKey; 			
  *     clientVect clients;				
- *     rectVect rects;					
- *     OverlayKey removeKey;			
+ *  	OverlayKey removeKey;			
+ *     
+ * 	QuadServer quadServer;			
+ * 	rectVect rects;					
+ * 	
+ * 	VoroServer voroServer;			
+ * 	Point senderLoc;
+ * 
+ *     
+ *     
+ *    
  * }
  * </pre>
  */
@@ -74,11 +84,13 @@ class DLBMessage : public ::cPacket
 {
   protected:
     int type_var;
-    QuadServer transferServer_var;
     OverlayKey senderKey_var;
     clientVect clients_var;
-    rectVect rects_var;
     OverlayKey removeKey_var;
+    QuadServer quadServer_var;
+    rectVect rects_var;
+    VoroServer voroServer_var;
+    Point senderLoc_var;
 
   private:
     void copy(const DLBMessage& other);
@@ -99,21 +111,27 @@ class DLBMessage : public ::cPacket
     // field getter/setter methods
     virtual int getType() const;
     virtual void setType(int type);
-    virtual QuadServer& getTransferServer();
-    virtual const QuadServer& getTransferServer() const {return const_cast<DLBMessage*>(this)->getTransferServer();}
-    virtual void setTransferServer(const QuadServer& transferServer);
     virtual OverlayKey& getSenderKey();
     virtual const OverlayKey& getSenderKey() const {return const_cast<DLBMessage*>(this)->getSenderKey();}
     virtual void setSenderKey(const OverlayKey& senderKey);
     virtual clientVect& getClients();
     virtual const clientVect& getClients() const {return const_cast<DLBMessage*>(this)->getClients();}
     virtual void setClients(const clientVect& clients);
-    virtual rectVect& getRects();
-    virtual const rectVect& getRects() const {return const_cast<DLBMessage*>(this)->getRects();}
-    virtual void setRects(const rectVect& rects);
     virtual OverlayKey& getRemoveKey();
     virtual const OverlayKey& getRemoveKey() const {return const_cast<DLBMessage*>(this)->getRemoveKey();}
     virtual void setRemoveKey(const OverlayKey& removeKey);
+    virtual QuadServer& getQuadServer();
+    virtual const QuadServer& getQuadServer() const {return const_cast<DLBMessage*>(this)->getQuadServer();}
+    virtual void setQuadServer(const QuadServer& quadServer);
+    virtual rectVect& getRects();
+    virtual const rectVect& getRects() const {return const_cast<DLBMessage*>(this)->getRects();}
+    virtual void setRects(const rectVect& rects);
+    virtual VoroServer& getVoroServer();
+    virtual const VoroServer& getVoroServer() const {return const_cast<DLBMessage*>(this)->getVoroServer();}
+    virtual void setVoroServer(const VoroServer& voroServer);
+    virtual Point& getSenderLoc();
+    virtual const Point& getSenderLoc() const {return const_cast<DLBMessage*>(this)->getSenderLoc();}
+    virtual void setSenderLoc(const Point& senderLoc);
 };
 
 inline void doPacking(cCommBuffer *b, DLBMessage& obj) {obj.parsimPack(b);}

@@ -1,5 +1,5 @@
 //
-// Generated file, do not edit! Created by opp_msgc 4.2 from DLB/quadtreeapp/DLBMessage.msg.
+// Generated file, do not edit! Created by opp_msgc 4.2 from DLB/DLBMessage.msg.
 //
 
 // Disable warnings about unused variables, empty switch stmts, etc:
@@ -71,33 +71,39 @@ DLBMessage& DLBMessage::operator=(const DLBMessage& other)
 void DLBMessage::copy(const DLBMessage& other)
 {
     this->type_var = other.type_var;
-    this->transferServer_var = other.transferServer_var;
     this->senderKey_var = other.senderKey_var;
     this->clients_var = other.clients_var;
-    this->rects_var = other.rects_var;
     this->removeKey_var = other.removeKey_var;
+    this->quadServer_var = other.quadServer_var;
+    this->rects_var = other.rects_var;
+    this->voroServer_var = other.voroServer_var;
+    this->senderLoc_var = other.senderLoc_var;
 }
 
 void DLBMessage::parsimPack(cCommBuffer *b)
 {
     cPacket::parsimPack(b);
     doPacking(b,this->type_var);
-    doPacking(b,this->transferServer_var);
     doPacking(b,this->senderKey_var);
     doPacking(b,this->clients_var);
-    doPacking(b,this->rects_var);
     doPacking(b,this->removeKey_var);
+    doPacking(b,this->quadServer_var);
+    doPacking(b,this->rects_var);
+    doPacking(b,this->voroServer_var);
+    doPacking(b,this->senderLoc_var);
 }
 
 void DLBMessage::parsimUnpack(cCommBuffer *b)
 {
     cPacket::parsimUnpack(b);
     doUnpacking(b,this->type_var);
-    doUnpacking(b,this->transferServer_var);
     doUnpacking(b,this->senderKey_var);
     doUnpacking(b,this->clients_var);
-    doUnpacking(b,this->rects_var);
     doUnpacking(b,this->removeKey_var);
+    doUnpacking(b,this->quadServer_var);
+    doUnpacking(b,this->rects_var);
+    doUnpacking(b,this->voroServer_var);
+    doUnpacking(b,this->senderLoc_var);
 }
 
 int DLBMessage::getType() const
@@ -108,16 +114,6 @@ int DLBMessage::getType() const
 void DLBMessage::setType(int type)
 {
     this->type_var = type;
-}
-
-QuadServer& DLBMessage::getTransferServer()
-{
-    return transferServer_var;
-}
-
-void DLBMessage::setTransferServer(const QuadServer& transferServer)
-{
-    this->transferServer_var = transferServer;
 }
 
 OverlayKey& DLBMessage::getSenderKey()
@@ -140,6 +136,26 @@ void DLBMessage::setClients(const clientVect& clients)
     this->clients_var = clients;
 }
 
+OverlayKey& DLBMessage::getRemoveKey()
+{
+    return removeKey_var;
+}
+
+void DLBMessage::setRemoveKey(const OverlayKey& removeKey)
+{
+    this->removeKey_var = removeKey;
+}
+
+QuadServer& DLBMessage::getQuadServer()
+{
+    return quadServer_var;
+}
+
+void DLBMessage::setQuadServer(const QuadServer& quadServer)
+{
+    this->quadServer_var = quadServer;
+}
+
 rectVect& DLBMessage::getRects()
 {
     return rects_var;
@@ -150,14 +166,24 @@ void DLBMessage::setRects(const rectVect& rects)
     this->rects_var = rects;
 }
 
-OverlayKey& DLBMessage::getRemoveKey()
+VoroServer& DLBMessage::getVoroServer()
 {
-    return removeKey_var;
+    return voroServer_var;
 }
 
-void DLBMessage::setRemoveKey(const OverlayKey& removeKey)
+void DLBMessage::setVoroServer(const VoroServer& voroServer)
 {
-    this->removeKey_var = removeKey;
+    this->voroServer_var = voroServer;
+}
+
+Point& DLBMessage::getSenderLoc()
+{
+    return senderLoc_var;
+}
+
+void DLBMessage::setSenderLoc(const Point& senderLoc)
+{
+    this->senderLoc_var = senderLoc;
 }
 
 class DLBMessageDescriptor : public cClassDescriptor
@@ -207,7 +233,7 @@ const char *DLBMessageDescriptor::getProperty(const char *propertyname) const
 int DLBMessageDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 6+basedesc->getFieldCount(object) : 6;
+    return basedesc ? 8+basedesc->getFieldCount(object) : 8;
 }
 
 unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -225,8 +251,10 @@ unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) co
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
+        FD_ISCOMPOUND,
+        FD_ISCOMPOUND,
     };
-    return (field>=0 && field<6) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<8) ? fieldTypeFlags[field] : 0;
 }
 
 const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
@@ -239,13 +267,15 @@ const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
     }
     static const char *fieldNames[] = {
         "type",
-        "transferServer",
         "senderKey",
         "clients",
-        "rects",
         "removeKey",
+        "quadServer",
+        "rects",
+        "voroServer",
+        "senderLoc",
     };
-    return (field>=0 && field<6) ? fieldNames[field] : NULL;
+    return (field>=0 && field<8) ? fieldNames[field] : NULL;
 }
 
 int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
@@ -253,11 +283,13 @@ int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
     cClassDescriptor *basedesc = getBaseClassDescriptor();
     int base = basedesc ? basedesc->getFieldCount(object) : 0;
     if (fieldName[0]=='t' && strcmp(fieldName, "type")==0) return base+0;
-    if (fieldName[0]=='t' && strcmp(fieldName, "transferServer")==0) return base+1;
-    if (fieldName[0]=='s' && strcmp(fieldName, "senderKey")==0) return base+2;
-    if (fieldName[0]=='c' && strcmp(fieldName, "clients")==0) return base+3;
-    if (fieldName[0]=='r' && strcmp(fieldName, "rects")==0) return base+4;
-    if (fieldName[0]=='r' && strcmp(fieldName, "removeKey")==0) return base+5;
+    if (fieldName[0]=='s' && strcmp(fieldName, "senderKey")==0) return base+1;
+    if (fieldName[0]=='c' && strcmp(fieldName, "clients")==0) return base+2;
+    if (fieldName[0]=='r' && strcmp(fieldName, "removeKey")==0) return base+3;
+    if (fieldName[0]=='q' && strcmp(fieldName, "quadServer")==0) return base+4;
+    if (fieldName[0]=='r' && strcmp(fieldName, "rects")==0) return base+5;
+    if (fieldName[0]=='v' && strcmp(fieldName, "voroServer")==0) return base+6;
+    if (fieldName[0]=='s' && strcmp(fieldName, "senderLoc")==0) return base+7;
     return basedesc ? basedesc->findField(object, fieldName) : -1;
 }
 
@@ -271,13 +303,15 @@ const char *DLBMessageDescriptor::getFieldTypeString(void *object, int field) co
     }
     static const char *fieldTypeStrings[] = {
         "int",
-        "QuadServer",
         "OverlayKey",
         "clientVect",
-        "rectVect",
         "OverlayKey",
+        "QuadServer",
+        "rectVect",
+        "VoroServer",
+        "Point",
     };
-    return (field>=0 && field<6) ? fieldTypeStrings[field] : NULL;
+    return (field>=0 && field<8) ? fieldTypeStrings[field] : NULL;
 }
 
 const char *DLBMessageDescriptor::getFieldProperty(void *object, int field, const char *propertyname) const
@@ -321,11 +355,13 @@ std::string DLBMessageDescriptor::getFieldAsString(void *object, int field, int 
     DLBMessage *pp = (DLBMessage *)object; (void)pp;
     switch (field) {
         case 0: return long2string(pp->getType());
-        case 1: {std::stringstream out; out << pp->getTransferServer(); return out.str();}
-        case 2: {std::stringstream out; out << pp->getSenderKey(); return out.str();}
-        case 3: {std::stringstream out; out << pp->getClients(); return out.str();}
-        case 4: {std::stringstream out; out << pp->getRects(); return out.str();}
-        case 5: {std::stringstream out; out << pp->getRemoveKey(); return out.str();}
+        case 1: {std::stringstream out; out << pp->getSenderKey(); return out.str();}
+        case 2: {std::stringstream out; out << pp->getClients(); return out.str();}
+        case 3: {std::stringstream out; out << pp->getRemoveKey(); return out.str();}
+        case 4: {std::stringstream out; out << pp->getQuadServer(); return out.str();}
+        case 5: {std::stringstream out; out << pp->getRects(); return out.str();}
+        case 6: {std::stringstream out; out << pp->getVoroServer(); return out.str();}
+        case 7: {std::stringstream out; out << pp->getSenderLoc(); return out.str();}
         default: return "";
     }
 }
@@ -355,13 +391,15 @@ const char *DLBMessageDescriptor::getFieldStructName(void *object, int field) co
     }
     static const char *fieldStructNames[] = {
         NULL,
-        "QuadServer",
         "OverlayKey",
         "clientVect",
-        "rectVect",
         "OverlayKey",
+        "QuadServer",
+        "rectVect",
+        "VoroServer",
+        "Point",
     };
-    return (field>=0 && field<6) ? fieldStructNames[field] : NULL;
+    return (field>=0 && field<8) ? fieldStructNames[field] : NULL;
 }
 
 void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i) const
@@ -374,11 +412,13 @@ void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i
     }
     DLBMessage *pp = (DLBMessage *)object; (void)pp;
     switch (field) {
-        case 1: return (void *)(&pp->getTransferServer()); break;
-        case 2: return (void *)(&pp->getSenderKey()); break;
-        case 3: return (void *)(&pp->getClients()); break;
-        case 4: return (void *)(&pp->getRects()); break;
-        case 5: return (void *)(&pp->getRemoveKey()); break;
+        case 1: return (void *)(&pp->getSenderKey()); break;
+        case 2: return (void *)(&pp->getClients()); break;
+        case 3: return (void *)(&pp->getRemoveKey()); break;
+        case 4: return (void *)(&pp->getQuadServer()); break;
+        case 5: return (void *)(&pp->getRects()); break;
+        case 6: return (void *)(&pp->getVoroServer()); break;
+        case 7: return (void *)(&pp->getSenderLoc()); break;
         default: return NULL;
     }
 }
