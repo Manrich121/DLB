@@ -436,6 +436,7 @@ void QuadtreeApp::sendNewServer(OverlayKey newKey) {
     EV << "QuadtreeApp::sendNewServer to key: " << newKey << std::endl;
     QuadServer* newServer = new QuadServer(newKey); // Init a new server object with key=newKey
     newServer->setMasterKey(thisServer->masterKey); // Set master key used to request new server when loaded
+    newServer->key = newKey;
     if (thisServer->transfer(newServer)) {
         clientCount = thisServer->myClients.size();
         DLBMessage *myMessage; // the message we'll send
