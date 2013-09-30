@@ -95,9 +95,8 @@ void VoroServer::refine(VoroServer* t) {
 
     this->generateVoronoi();
     t->generateVoronoi();
+
     set <Client*>::iterator cit;
-
-
     set<Client*> tmpSet = myClients;
     for (cit = this->myClients.begin(); cit != this->myClients.end();cit++) {
         if (t->ownership(*cit)){
@@ -107,12 +106,6 @@ void VoroServer::refine(VoroServer* t) {
     }
 
     this->myClients = tmpSet;
-
-//  TODO: Notify neighbours to generate their voronoi's
-//    for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-//        (*it)->generateVoronoi();
-//    }
-
 }
 
 void VoroServer::returnThisSite(){
@@ -209,8 +202,6 @@ void VoroServer::generateVoronoi() {
     myUnique(&sPoints);
     this->deleteCell();
     this->GrahamScan(sPoints);
-
-//  TODO:Notify neighbours
 }
 
 /*
@@ -270,17 +261,6 @@ void VoroServer::deleteCell(){
 //        v->~Vertex();
 //    }else{
 //        deleteMyVertex(v->next);
-//    }
-//}
-
-//void VoroServer::checkNeighbours() {
-//    set <VoroServer*>::iterator it;
-//    set <VoroServer*> tmpNeig = this->neighbours;
-//    for(it = tmpNeig.begin(); it != tmpNeig.end(); it++) {
-//        if (!this->isNeigh(*it)) {              // If not neigbour anymore
-//            this->neighbours.erase(*it);
-//            (*it)->neighbours.erase(this);
-//        }
 //    }
 //}
 
@@ -386,7 +366,6 @@ void VoroServer::GrahamScan(std::vector<Point> p) {
     for (unsigned int i=0;i<convexHull->size();i++){
         this->addVertex(Point(convexHull->at(i).x,convexHull->at(i).y),true);
     }
-
 }
 
 void VoroServer::vertsToVector(std::vector<Point> *v) {

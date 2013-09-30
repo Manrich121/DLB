@@ -14,7 +14,7 @@
 // 
 
 #include "Client.h"
-
+#include <omnetpp.h>
 #include "stdlib.h"
 
 Client::Client() {
@@ -25,13 +25,13 @@ Client::~Client() {
 
 Client::Client(Point p, int max) {
     loc = p;
-    vx = rand()%3 +1;
-    vy = rand()%3 +1;
-    int dir = rand()%100;
+    vx = intuniform(1,4);
+    vy = intuniform(1,4);
+    int dir = intuniform(1,100);
     if (dir<50){
         vx = -vx;
     }
-    dir = rand()%100;
+    dir = intuniform(1,100);
     if(dir<50){
         vy = -vy;
     }

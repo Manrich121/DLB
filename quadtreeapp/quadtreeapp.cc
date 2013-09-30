@@ -105,9 +105,10 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
              */
 
             if (msg == clientAddTimer) {
-                scheduleAt(simTime() + 1, clientAddTimer);
+                if (this->clientCount < 8)
+                    scheduleAt(simTime() + 1, clientAddTimer);
                 if (thisServer != NULL){
-                    double r = rand()%100;
+                    double r = uniform(1,100);
                     if (r>20){
                         addClient();
                     }else{
