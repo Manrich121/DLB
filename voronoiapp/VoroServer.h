@@ -89,7 +89,7 @@ public:
     // Polygon functions
     void addVertex(Point a, bool ccw);
     void deleteCell();
-//    void deleteMyVertex(Vertex* v);
+    void deleteMyVertex(Vertex* v);
     bool pointInPolygon(Point p);
     std::vector<Point> *RemoveDup(std::vector<Point> v);
 

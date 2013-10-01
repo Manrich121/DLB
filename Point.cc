@@ -25,7 +25,7 @@ double Point::y() { return yval; }
 double Point::dist(Point other) {
     double xd = xval - other.xval;
     double yd = yval - other.yval;
-    return std::sqrt(xd*xd + yd*yd);
+    return sqrt(xd*xd + yd*yd);
 }
 
 // Add or subtract two points.

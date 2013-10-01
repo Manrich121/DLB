@@ -65,23 +65,26 @@ bool VoroServer::underLoaded() {
  *  Distibuted Voronoi
  ***********************************/
 
-void myUnique(std::vector<Point> *points) {
+std::vector<Point> myUnique(std::vector<Point> points) {
     Point curPoint;
     Point compPoint;
-    for (unsigned int i=0;i<points->size()-1; i++){
-        curPoint = points->at(i);
-        for(unsigned int j=i+1;j<points->size();j++){
-            compPoint = points->at(j);;
+    std::vector<Point> uniques;
+    bool dup;
+    for (unsigned int i=0;i<points.size()-1; i++){
+        dup = false;
+        curPoint = points.at(i);
+        for(unsigned int j=i+1;j<points.size();j++){
+            compPoint = points.at(j);
             if(curPoint.equal(compPoint)) {
-                points->erase(points->begin()+j);
+                dup = true;
+                break;
             }
         }
+        if(!dup)
+            uniques.push_back(curPoint);
     }
-
-    //test last
-    if (points->back().equal(*(points->end()-2))){
-        points->erase(points->end() -1);
-    }
+    uniques.push_back(points.back());
+    return uniques;
 }
 
 void VoroServer::refine(VoroServer* t) {
@@ -139,8 +142,11 @@ void VoroServer::generateVoronoi() {
     std::vector<Point> sPoints;
     std::vector<Point> vPoints;
     std::vector<Point> points;
+    sPoints.clear();
+    vPoints.clear();
+    points.clear();
     VoronoiDiagramGenerator vdg;
-    std::map<OverlayKey, Point>::iterator it;
+    map<OverlayKey,Point>::iterator it;
     float x1,y1,x2,y2;
     Point curPoint;
     double distTp, newDist;
@@ -176,9 +182,8 @@ void VoroServer::generateVoronoi() {
         vPoints.push_back(Point(x2,y2));
     }
 
-    myUnique(&vPoints);
+    vPoints = myUnique(vPoints);
     this->deleteCell();
-
     bool mine;
     for (unsigned int i=0;i<vPoints.size();i++) {
         mine = true;
@@ -186,21 +191,17 @@ void VoroServer::generateVoronoi() {
         distTp = this->loc.dist(curPoint);
         for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
             newDist = (*it).second.dist(curPoint);
-            if (abs(newDist - distTp) < EPS) {
-                this->addVertex(curPoint, false);
-            }
-            if (newDist < distTp) {
-                mine = false;
+            if (abs(newDist - distTp) > EPS) {
+                if (newDist < distTp) {
+                    mine = false;
+                }
             }
         }
         if (mine) {
-            this->addVertex(curPoint, false);
+            sPoints.push_back(curPoint);
         }
     }
 
-    this->vertsToVector(&sPoints);
-    myUnique(&sPoints);
-    this->deleteCell();
     this->GrahamScan(sPoints);
 }
 
@@ -251,18 +252,18 @@ void VoroServer::deleteCell(){
     if (this->cell.origin == NULL) {
         return;
     }
-//    deleteMyVertex(this->cell.origin);
+    deleteMyVertex(this->cell.origin);
     this->cell.origin = NULL;
     this->cell.n = 0;
 }
 
-//void VoroServer::deleteMyVertex(Vertex* v) {
-//    if (v->next == NULL) {
-//        v->~Vertex();
-//    }else{
-//        deleteMyVertex(v->next);
-//    }
-//}
+void VoroServer::deleteMyVertex(Vertex* v) {
+    if (v->next == NULL) {
+        delete v;
+    }else{
+        deleteMyVertex(v->next);
+    }
+}
 
 bool VoroServer::ownership(Client* c) {
     return this->pointInPolygon(c->loc);
