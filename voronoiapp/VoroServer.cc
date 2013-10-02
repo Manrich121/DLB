@@ -93,9 +93,6 @@ void VoroServer::refine(VoroServer* t) {
     this->neighbours[t->key] = t->loc;
     t->neighbours[this->key] = this->loc;
 
-    t->parent = this;
-    this->childCount++;
-
     this->generateVoronoi();
     t->generateVoronoi();
 
@@ -111,16 +108,31 @@ void VoroServer::refine(VoroServer* t) {
     this->myClients = tmpSet;
 }
 
-void VoroServer::returnThisSite(){
-//    TODO: Return this site and notify neighbours to regenerate their voronois
-//    set <VoroServer*>::iterator it;
+//void VoroServer::returnThisSite(){
+//    map <OverlayKey, Point>::iterator it;
 //    for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-//        (*it)->neighbours.erase(this);
+//        (*it)->removeMe(this->key,this->neighbours);
+////        TODO: (*it)->generateVoronoi();
 //    }
-//
-//    for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-//        (*it)->generateVoronoi();
-//    }
+//}
+
+void VoroServer::removeMe(OverlayKey t, map <OverlayKey, Point> excludeNeighs) {
+    map <OverlayKey, Point>::iterator it;
+    this->neighbours.erase(t);
+    this->generateVoronoi();
+    for (it=this->neighbours.begin(); it != this->neighbours.end();it++){
+        if((*it).first != this->key){
+            if(excludeNeighs.find((*it).first) == excludeNeighs.end()){     // Not in excludeList
+//                TODO:(*it)->neighbours.erase(t);
+//                (*it)->generateVoronoi();
+            }
+        }
+    }
+    // chech neigbours of t
+    for (it = excludeNeighs.begin(); it != excludeNeighs.end();it++){
+        if((*it).first != this->key && this->isNeigh((*it).second))
+            this->neighbours.insert(*it);
+    }
 }
 
 Point VoroServer::getCenterofClients(){
@@ -242,7 +254,7 @@ void VoroServer::addVertex(Point a, bool ccw) {
 
 
     // Recalc rmax
-    double newR = this->loc.dist(a);    // calculate radius to new point
+    double newR = 2*this->loc.dist(a);    // calculate radius to new point
     if (newR > this->cell.rmax) {
         this->cell.rmax = newR;
     }
@@ -255,6 +267,7 @@ void VoroServer::deleteCell(){
     deleteMyVertex(this->cell.origin);
     this->cell.origin = NULL;
     this->cell.n = 0;
+    this->cell.rmax =0;
 }
 
 void VoroServer::deleteMyVertex(Vertex* v) {
@@ -270,8 +283,7 @@ bool VoroServer::ownership(Client* c) {
 }
 
 bool VoroServer::isNeigh(Point tloc) {
-    Point mid = middle(this->loc, tloc);        // Calulate midpoint
-    return (this->loc.dist(mid) <= this->cell.rmax);
+    return this->loc.dist(loc) <= this->cell.rmax;
 }
 
 void VoroServer::findIntersects(Line line, std::vector<Point> *ip) {

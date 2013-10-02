@@ -52,7 +52,7 @@ class VoronoiApp: public BaseApp {
     OverlayKey getNewServerKey();
     void sendNewServer(OverlayKey newKey);
     void returnServer(VoroServer* retServer);
-    void updateNeighbours();
+    void updateNeighbours(VoroServer* newServer);
 
 public:
     VoronoiApp(){ticTimer = NULL;

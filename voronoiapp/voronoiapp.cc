@@ -214,8 +214,6 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
 
         EV << "+++++++++++++++" << std::endl;
 
-        updateNeighbours();
-
         // start client timer
         clientMoveTimer = new cMessage("ClientMove Timer");
         scheduleAt(simTime() + 0.5, clientMoveTimer);
@@ -264,7 +262,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         // Create new VoroServer object and assign values to it
         VoroServer retServer = myMsg->getVoroServer();
         EV << "**************\nVoronoiApp::deliver => " << myKey << " Got return server" << std::endl;
-        EV << "Parent key : " << retServer.parent->key << std::endl;
+        EV << "Return server key : " << retServer.key << std::endl;
 
         returnServer(&retServer);
 
@@ -281,7 +279,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         // Test to see if I am master
         if(master){
             inUse.erase(myMsg->getSenderKey());
-            sCount--;
+            sCount = inUse.size()+1;
             EV << "**************\n Erased inUse["<<myMsg->getSenderKey() << "]" << std::endl;
         }
     }delete msg; break;
@@ -303,16 +301,19 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
     }delete myMsg;break;
     case NEIGH_A_R : {
         OverlayKey removeKey = myMsg->getRemoveKey();
-
         if(!removeKey.isUnspecified()) {
             thisServer->neighbours.erase(removeKey);
             EV << "VoronoiApp::" << thisNode.getIp() << " Remove key " << removeKey << std::endl;
         }
 
-        thisServer->neighbours[myMsg->getSenderKey()] = myMsg->getSenderLoc();
+        OverlayKey senderKey = myMsg->getSenderKey();
+        if (!senderKey.isUnspecified()){
+            thisServer->neighbours[senderKey] = myMsg->getSenderLoc();
+            EV << "VoronoiApp::" << thisNode.getIp() << " Inserting new neighbour " << senderKey << std::endl;
+        }
+        EV << "VoronoiApp::" << thisNode.getIp() << " Neighbours size : " << thisServer->neighbours.size() << "\n";
         thisServer->generateVoronoi();          // Recalculate voronoi diagram
 
-        EV << "VoronoiApp::" << thisNode.getIp() << " Inserting new neighbour " << myMsg->getSenderKey() << std::endl;
     }delete myMsg; break;
     }
 }
@@ -394,20 +395,25 @@ void VoronoiApp::checkLoad() {
         }
     }else{
         if(thisServer->underLoaded()) {
-            if (thisServer->parent != NULL) {
+            if (this->master == false) {
 
                 EV << "******************** Underload **********************" << std::endl;
-                EV << "VoronoiApp::checkLoad " << thisNode.getIp() << " underload transfering area and clients to parent (if possible)" << std::endl;
+                EV << "VoronoiApp::checkLoad " << thisNode.getIp() << " underload transfering area and clients neighbours (if possible)" << std::endl;
 
 //                endSimulation();
-
+                map <OverlayKey, Point>::iterator sit;
                 DLBMessage* sretMsg = new DLBMessage();
                 sretMsg->setType(RETSERV_MSG);
                 sretMsg->setSenderKey(myKey);
                 sretMsg->setVoroServer(*thisServer);
                 sretMsg->setByteLength(sizeof(*thisServer));
 
-                callRoute(thisServer->parent->key, sretMsg);
+                for(sit = thisServer->neighbours.begin(); sit != thisServer->neighbours.end(); sit++) {
+                    EV << "VoronoiApp::underload => Notify neihgbour about my leave " << (*sit).first << std::endl;
+                    callRoute((*sit).first,sretMsg->dup());
+                }
+
+                delete sretMsg;
 
 //                delete thisServer;
 //                thisServer = NULL;
@@ -438,10 +444,11 @@ OverlayKey VoronoiApp::getNewServerKey() {
             if (kit == inUse.end() && (*it).getKey() != myKey) {
                 inUse.insert((*it).getKey());
                 EV << "VoronoiApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
-                sCount++;
+
                 return (*it).getKey();
             }
         }
+        sCount = inUse.size()+1;
     }
     return OverlayKey::UNSPECIFIED_KEY;
 }
@@ -454,6 +461,9 @@ void VoronoiApp::sendNewServer(OverlayKey newKey) {
     newServer->key = newKey;
     thisServer->refine(newServer);
     clientCount = thisServer->myClients.size();
+
+    updateNeighbours(newServer);
+
     DLBMessage *myMessage; // the message we'll send
     myMessage = new DLBMessage();
     myMessage->setType(SERVER_MSG); // set the message type to LOC_MSG
@@ -473,9 +483,6 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
     set <Client*>::iterator cit;
     map <OverlayKey, Point>::iterator it;
 
-    EV << "thisServer stuff" << std::endl;
-    thisServer->childCount--;
-
     EV << "Transfer all myClients" << std::endl;
     // Transfer all myClients
     for (cit = retServer->myClients.begin(); cit != retServer->myClients.end();cit++) {
@@ -484,35 +491,50 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
     this->clientCount = thisServer->myClients.size();
 
     EV << "Update neigbours" << std::endl;
-    DLBMessage *neighMsg = new DLBMessage();
-    neighMsg->setType(NEIGH_A_R);
-    neighMsg->setSenderKey(myKey);
-    neighMsg->setRemoveKey(retServer->key);
-    neighMsg->setByteLength(sizeof(myKey));
+    DLBMessage *removeMsg = new DLBMessage();
+    removeMsg->setType(NEIGH_A_R);
+    removeMsg->setSenderKey(OverlayKey::UNSPECIFIED_KEY);
+    removeMsg->setRemoveKey(retServer->key);
+    removeMsg->setByteLength(sizeof(myKey));
 
-    // Remove me from all neighbour lists
-    for(it = retServer->neighbours.begin(); it != retServer->neighbours.end(); it++) {
-        callRoute((*it).first, neighMsg->dup());
+    // Send to removeMsg myself
+    callRoute(myKey, removeMsg->dup());
+
+    map <OverlayKey, Point> excludeNeighs = retServer->neighbours;
+
+    // Remove retServer from all my neighbour's lists (not already messaged)
+    for(it = thisServer->neighbours.begin(); it != thisServer->neighbours.end(); it++) {
+        if(excludeNeighs.find((*it).first) == excludeNeighs.end()){     // Not in excludeList
+            callRoute((*it).first, removeMsg->dup());
+        }
     }
-    delete neighMsg;
+
+    // Test retServer's neighbours neighbour?
+    for (it = excludeNeighs.begin(); it != excludeNeighs.end();it++){
+        if ((*it).first != myKey && thisServer->isNeigh((*it).second)){
+            thisServer->neighbours[(*it).first] = (*it).second;
+            EV << "VoronoiApp::" << thisNode.getIp() << " Inserting new neighbour " << (*it).first << std::endl;
+        }
+    }
+    delete removeMsg;
 
     EV << "myClients.size() : " << retServer->myClients.size() << std::endl;
     EV << "myNeighbours.size() : " << retServer->neighbours.size() << std::endl;
     EV << "Lvl : " << retServer->lvl << std::endl;
 }
 
-void VoronoiApp::updateNeighbours() {
+void VoronoiApp::updateNeighbours(VoroServer* newServer) {
     EV << "+++++++++++++++++ " << thisNode.getIp() << " UpdateNeighs ++++++++++++++++++" << std::endl;
     std::map<OverlayKey, Point>::iterator it;
 
     DLBMessage *rectMsg = new DLBMessage();
     rectMsg->setType(NEIGH_REQ);
-    rectMsg->setSenderKey(myKey);
-    rectMsg->setSenderLoc(thisServer->loc);
+    rectMsg->setSenderKey(newServer->key);
+    rectMsg->setSenderLoc(newServer->loc);
     rectMsg->setByteLength(sizeof(thisServer->loc));
 
-    for (it = thisServer->parent->neighbours.begin(); it != thisServer->parent->neighbours.end(); it++) {
-        if((*it).first != myKey)
+    for (it = thisServer->neighbours.begin(); it != thisServer->neighbours.end(); it++) {
+        if((*it).first != newServer->key)
             callRoute((*it).first, rectMsg->dup());
     }
 

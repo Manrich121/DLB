@@ -84,6 +84,7 @@ public:
                                 // the current server and new point
     Point getCenterofClients();
     void returnThisSite();
+    void removeMe(OverlayKey t, map <OverlayKey, Point> excludeNeighs);
     bool ownership(Client* c);
 
     // Polygon functions
