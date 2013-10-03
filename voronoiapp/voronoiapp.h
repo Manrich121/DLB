@@ -31,6 +31,7 @@ class VoronoiApp: public BaseApp {
     //params
     int maxServers;
     int clientCount;
+    int neighCount;
     bool master;
     OverlayKey myKey;
     VoroServer* thisServer;

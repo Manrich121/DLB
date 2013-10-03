@@ -41,12 +41,14 @@ void VoronoiApp::initializeApp(int stage)
     // Get params set in .ini file
     maxServers = par("largestKey");
     clientCount = 0;
+    neighCount = 0;
     myKey = OverlayKey::ZERO;
     thisServer = NULL;
 
     //TODO: add WATCH on data vars to record
     WATCH(sCount);
     WATCH(clientCount);
+    WATCH(neighCount);
     WATCH(myKey);
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -221,7 +223,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
 //      start load Check timer
         serverTimer = new cMessage("Server load check");
         scheduleAt(simTime() + 2, serverTimer);
-
+        this->neighCount = thisServer->neighbours.size();
         }delete msg; break;
     case CLIENTRANS_MSG: {
         EV << "------------------ Client Transfer ----------------" << std::endl;
@@ -248,6 +250,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
                 myMessage->setType(REQKEY_MSG); // set the message type
                 myMessage->setSenderKey(newKey);  // Store the new serverkey in senderkey
                 myMessage->setByteLength(sizeof(newKey)); // set the message length to size of an Overlaykey
+
 
                 callRoute(slaveKey, myMessage);
             }
@@ -298,6 +301,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
             callRoute(senderKey, ackNeigh);
             EV << "VoronoiApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
         }
+        this->neighCount = thisServer->neighbours.size();
     }delete myMsg;break;
     case NEIGH_A_R : {
         OverlayKey removeKey = myMsg->getRemoveKey();
@@ -313,7 +317,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         }
         EV << "VoronoiApp::" << thisNode.getIp() << " Neighbours size : " << thisServer->neighbours.size() << "\n";
         thisServer->generateVoronoi();          // Recalculate voronoi diagram
-
+        this->neighCount = thisServer->neighbours.size();
     }delete myMsg; break;
     }
 }
@@ -415,9 +419,11 @@ void VoronoiApp::checkLoad() {
 
                 delete sretMsg;
 
-//                delete thisServer;
-//                thisServer = NULL;
                 clientCount = 0;
+                neighCount = 0;
+                thisServer->myClients.clear();
+                thisServer->neighbours.clear();
+                thisServer->deleteCell();
                 //Cancel all timers
                 cancelAndDelete(serverTimer);
                 cancelAndDelete(clientMoveTimer);
@@ -429,6 +435,7 @@ void VoronoiApp::checkLoad() {
             }
         }
     }
+    this->neighCount = thisServer->neighbours.size();
 }
 
 OverlayKey VoronoiApp::getNewServerKey() {
@@ -444,11 +451,10 @@ OverlayKey VoronoiApp::getNewServerKey() {
             if (kit == inUse.end() && (*it).getKey() != myKey) {
                 inUse.insert((*it).getKey());
                 EV << "VoronoiApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
-
+                sCount = inUse.size()+1;
                 return (*it).getKey();
             }
         }
-        sCount = inUse.size()+1;
     }
     return OverlayKey::UNSPECIFIED_KEY;
 }

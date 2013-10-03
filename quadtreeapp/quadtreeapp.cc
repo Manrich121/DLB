@@ -41,12 +41,14 @@ void QuadtreeApp::initializeApp(int stage)
     // Get params set in .ini file
     maxServers = par("largestKey");
     clientCount = 0;
+    neighCount = 0;
     myKey = OverlayKey::ZERO;
     thisServer = NULL;
 
     //TODO: add WATCH on data vars to record
     WATCH(sCount);
     WATCH(clientCount);
+    WATCH(neighCount);
     WATCH(myKey);
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -292,6 +294,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
             callRoute(senderKey, ackNeigh);
             EV << "QuadtreeApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
         }
+        this->neighCount = thisServer->neighbours.size();
     }break;
     case NEIGH_A_R : {
         OverlayKey removeKey = myMsg->getRemoveKey();
@@ -303,6 +306,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
 
         thisServer->neighbours.insert(myMsg->getSenderKey());
         EV << "QuadtreeApp::" << thisNode.getIp() << " Inserting new neighbour " << myMsg->getSenderKey() << std::endl;
+        this->neighCount = thisServer->neighbours.size();
     }delete myMsg; break;
     }
 }
