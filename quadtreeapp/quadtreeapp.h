@@ -21,6 +21,10 @@
 #include "QuadServer.h"
 
 class QuadtreeApp: public BaseApp {
+
+    //Stats signals
+    simsignal_t msgCountSig;
+
     // Self timer messages
     cMessage *ticTimer;
     cMessage *serverTimer;

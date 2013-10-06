@@ -253,12 +253,6 @@ bool QuadServer::returnArea() {
 
         this->parent->checkOwnership();
 
-        // Remove me from all neighbour lists
-//        for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-//            this->parent->addAdjacent(*it);
-//            (*it)->neighbours.erase(this);
-//        }
-
         // Set lvl be deleted
         this->lvl = -1;
         return true;

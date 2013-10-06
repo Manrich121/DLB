@@ -37,7 +37,6 @@ void QuadtreeApp::initializeApp(int stage)
 
     if (stage != MIN_STAGE_APP) return;
 
-    srand(time(NULL));
     // Get params set in .ini file
     maxServers = par("largestKey");
     clientCount = 0;
@@ -50,6 +49,10 @@ void QuadtreeApp::initializeApp(int stage)
     WATCH(clientCount);
     WATCH(neighCount);
     WATCH(myKey);
+
+    // Register signals
+    msgCountSig = registerSignal("numMsg");
+
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
     }else{
@@ -91,6 +94,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
            << randomKey << "!" << std::endl;
 
         callRoute(randomKey, myMessage); // send it to the overlay
+        emit(msgCountSig, 1);
 //        addClient();
     }else {
     /*
@@ -107,8 +111,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
              */
 
             if (msg == clientAddTimer) {
-                if (this->clientCount < 8)
-                    scheduleAt(simTime() + 1, clientAddTimer);
+                scheduleAt(simTime() + 1, clientAddTimer);
                 if (thisServer != NULL){
                     double r = uniform(1,100);
                     if (r>20){
@@ -192,11 +195,13 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
            << std::endl;
 
         callRoute(senderKey,myMsg);
+        emit(msgCountSig, 1);
     }break;
     case DEBUG_MSG : {
             EV << "QuadtreeApp::deliver => " << thisNode.getIp() << ": Got reply from "<< myMsg->getSenderKey() << std::endl;
         }delete msg; break;
     case SERVER_MSG : {
+        myKey = this->overlay->getThisNode().getKey();
         // Create new QuadServer object and assign values to it
         thisServer = new QuadServer;
         *thisServer = myMsg->getQuadServer();
@@ -249,6 +254,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
                 myMessage->setByteLength(sizeof(newKey)); // set the message length to size of an Overlaykey
 
                 callRoute(slaveKey, myMessage);
+                emit(msgCountSig, 1);
             }
         }else{
             EV << "@@@@@@@@@@@@@@@@@@" << std::endl;
@@ -271,6 +277,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         freeMsg->setByteLength(sizeof(retServer.key));
 
         callRoute(thisServer->masterKey, freeMsg);
+        emit(msgCountSig, 1);
         EV << "**************" << std::endl;
 
     }delete msg; break;
@@ -292,6 +299,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
             ackNeigh->setType(NEIGH_A_R);
             ackNeigh->setSenderKey(myKey);
             callRoute(senderKey, ackNeigh);
+            emit(msgCountSig, 1);
             EV << "QuadtreeApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
         }
         this->neighCount = thisServer->neighbours.size();
@@ -360,6 +368,7 @@ void QuadtreeApp::clientUpdate() {
         for(sit = thisServer->neighbours.begin(); sit != thisServer->neighbours.end(); sit++) {
             EV << "QuadTreeApp::clientUpdate => Transfer clients to " << *sit << std::endl;
             callRoute(*sit,clientTMsg->dup());
+            emit(msgCountSig, 1);
         }
         delete clientTMsg;
         EV << "------------ Transfer Clients--------------" << std::endl;
@@ -383,6 +392,7 @@ void QuadtreeApp::checkLoad() {
             reqMsg->setByteLength(100); // set the message length to 100 bytes
 
             callRoute(thisServer->masterKey, reqMsg);
+            emit(msgCountSig, 1);
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
         }
     }else{
@@ -398,6 +408,7 @@ void QuadtreeApp::checkLoad() {
                 sretMsg->setByteLength(sizeof(*thisServer));
 
                 callRoute(thisServer->parent->key, sretMsg);
+                emit(msgCountSig, 1);
 
 //                delete thisServer;
 //                thisServer = NULL;
@@ -442,6 +453,7 @@ void QuadtreeApp::sendNewServer(OverlayKey newKey) {
     QuadServer* newServer = new QuadServer(newKey); // Init a new server object with key=newKey
     newServer->setMasterKey(thisServer->masterKey); // Set master key used to request new server when loaded
     newServer->key = newKey;
+
     if (thisServer->transfer(newServer)) {
         clientCount = thisServer->myClients.size();
         DLBMessage *myMessage; // the message we'll send
@@ -454,6 +466,7 @@ void QuadtreeApp::sendNewServer(OverlayKey newKey) {
         EV << "QuadtreeApp::checkLoad => Overloaded and setting up new server, key: " << newKey << " MyLoc (" << thisServer->loc.x() << "," << thisServer->loc.y()
                 << ") NewServloc (" << newServer->loc.x() << "," << newServer->loc.y() << ")"<< std::endl;
         callRoute(newKey, myMessage);
+        emit(msgCountSig, 1);
     }
     EV << "+++++++++++++++++ SendNewServer ++++++++++++++++++" << std::endl;
 }
@@ -485,6 +498,7 @@ void QuadtreeApp::returnServer(QuadServer* retServer) {
     // Remove me from all neighbour lists
     for(it = retServer->neighbours.begin(); it != retServer->neighbours.end(); it++) {
         callRoute(*it, neighMsg->dup());
+        emit(msgCountSig, 1);
     }
     delete neighMsg;
     retServer->lvl = -1;
@@ -505,8 +519,10 @@ void QuadtreeApp::updateNeighbours() {
     rectMsg->setByteLength(sizeof(thisServer->cell.rect));
 
     for (it = thisServer->parent->neighbours.begin(); it != thisServer->parent->neighbours.end(); it++) {
-        if(*it != myKey)
+        if(*it != myKey) {
             callRoute(*it, rectMsg->dup());
+            emit(msgCountSig, 1);
+        }
     }
 
     delete rectMsg;

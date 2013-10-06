@@ -108,33 +108,6 @@ void VoroServer::refine(VoroServer* t) {
     this->myClients = tmpSet;
 }
 
-//void VoroServer::returnThisSite(){
-//    map <OverlayKey, Point>::iterator it;
-//    for(it = this->neighbours.begin(); it != this->neighbours.end(); it++) {
-//        (*it)->removeMe(this->key,this->neighbours);
-////        TODO: (*it)->generateVoronoi();
-//    }
-//}
-
-void VoroServer::removeMe(OverlayKey t, map <OverlayKey, Point> excludeNeighs) {
-    map <OverlayKey, Point>::iterator it;
-    this->neighbours.erase(t);
-    this->generateVoronoi();
-    for (it=this->neighbours.begin(); it != this->neighbours.end();it++){
-        if((*it).first != this->key){
-            if(excludeNeighs.find((*it).first) == excludeNeighs.end()){     // Not in excludeList
-//                TODO:(*it)->neighbours.erase(t);
-//                (*it)->generateVoronoi();
-            }
-        }
-    }
-    // chech neigbours of t
-    for (it = excludeNeighs.begin(); it != excludeNeighs.end();it++){
-        if((*it).first != this->key && this->isNeigh((*it).second))
-            this->neighbours.insert(*it);
-    }
-}
-
 Point VoroServer::getCenterofClients(){
     set <Client*>::iterator cit;
     double x=0;

@@ -30,6 +30,8 @@ simple QuadtreeApp extends BaseApp
     parameters:
         @class(QuadtreeApp);
         int largestKey;            // largest key we can pick
+        @signal[numMsg](type="int");
+        @statistic[numMsg](title="number of Msg"; source="numMsg"; record=vector,stats; interpolationmode=none);
 }
 
 module QuadtreeAppModules like ITier
