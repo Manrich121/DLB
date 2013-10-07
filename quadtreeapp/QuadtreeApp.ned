@@ -29,9 +29,13 @@ simple QuadtreeApp extends BaseApp
 {
     parameters:
         @class(QuadtreeApp);
-        int largestKey;            // largest key we can pick
+        int maxServers;            // largest key we can pick
+        int maxClients;
+        int areaDim;
+        double leaveChance;      // chance that a client leaves
         @signal[numMsg](type="int");
         @statistic[numMsg](title="number of Msg"; source="numMsg"; record=vector,stats; interpolationmode=none);
+        @statistic[numClients](title="number of Client migrations"; source="numClients"; record=vector,stats; interpolationmode=none);
 }
 
 module QuadtreeAppModules like ITier

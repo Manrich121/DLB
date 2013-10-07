@@ -31,7 +31,7 @@
 // Defines
 #define MAXCLIENTS 5
 #define MINCLIENTS 1
-#define WIDTH 800
+//#define WIDTH 800
 
 class Rectangle {
 public:

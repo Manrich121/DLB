@@ -32,7 +32,7 @@
 // Defines
 #define MAXCLIENTS 5
 #define MINCLIENTS 1
-#define WIDTH 800
+//#define WIDTH 800
 
 #define _DEBUG
 
@@ -59,9 +59,9 @@ struct VCell {
 class VoroServer {
 public:
     VoroServer();
-    VoroServer(OverlayKey k);
+    VoroServer(OverlayKey k, int areaDim);
     ~VoroServer();
-    VoroServer(OverlayKey k, double x, double y);
+    VoroServer(OverlayKey k, double x, double y, int areaDim);
 
     void setMasterKey(OverlayKey k);
     void printNeighbourLocs();
@@ -104,6 +104,7 @@ public:
     int childCount;
     std::map<OverlayKey, Point> neighbours;     // OverlayKey mapped to a server locations
     std::set<Client*> myClients;
+    int areaDim;
 };
 
 bool ccw(Point p[], int n);

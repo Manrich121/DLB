@@ -24,6 +24,7 @@ class QuadtreeApp: public BaseApp {
 
     //Stats signals
     simsignal_t msgCountSig;
+    simsignal_t clientMigrate;
 
     // Self timer messages
     cMessage *ticTimer;
@@ -34,7 +35,11 @@ class QuadtreeApp: public BaseApp {
 
     //params
     int maxServers;
+    int maxClients;
+    int globClientCount;
     int clientCount;
+    int areaDim;
+    double leaveChance;
     int neighCount;
     bool master;
     OverlayKey myKey;

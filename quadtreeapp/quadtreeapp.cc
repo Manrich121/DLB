@@ -38,20 +38,27 @@ void QuadtreeApp::initializeApp(int stage)
     if (stage != MIN_STAGE_APP) return;
 
     // Get params set in .ini file
-    maxServers = par("largestKey");
+    maxServers = par("maxServers");
+    maxClients = par("maxClients");
+    leaveChance = par("leaveChance");
+    areaDim = par("areaDim");
+    globClientCount = 0;
     clientCount = 0;
     neighCount = 0;
     myKey = OverlayKey::ZERO;
     thisServer = NULL;
 
+
     //TODO: add WATCH on data vars to record
     WATCH(sCount);
     WATCH(clientCount);
+    WATCH(globClientCount);
     WATCH(neighCount);
     WATCH(myKey);
 
     // Register signals
     msgCountSig = registerSignal("numMsg");
+    clientMigrate = registerSignal("numClients");
 
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -113,11 +120,10 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
             if (msg == clientAddTimer) {
                 scheduleAt(simTime() + 1, clientAddTimer);
                 if (thisServer != NULL){
-                    double r = uniform(1,100);
-                    if (r>20){
+                    double r = uniform(0,1);
+                    if (r > leaveChance){
                         addClient();
                     }else{
-    //                  Remove client
                         removeClient();
                     }
                 }
@@ -148,14 +154,11 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                             serverTimer = new cMessage("Server load check");
                             scheduleAt(simTime() + 2, serverTimer);
 
-                            thisServer = new QuadServer(myKey, WIDTH/2,WIDTH/2);
+                            thisServer = new QuadServer(myKey, areaDim/2,areaDim/2);
                             thisServer->setMasterKey(myKey);
-                            thisServer->addRect(Point(0,0), Point(WIDTH,WIDTH));
+                            thisServer->addRect(Point(0,0), Point(areaDim,areaDim));
                             addClient();
-                            addClient();
-                            addClient();
-                            addClient();
-                            addClient();
+
                             sCount=1;
                         }
                         cancelAndDelete(msg);
@@ -320,10 +323,13 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
 }
 
 void QuadtreeApp::addClient() {
-        thisServer->myClients.insert(new Client(thisServer->loc, WIDTH));
-        clientCount++;
-        EV << "##############QuadtreeApp::addClient => " << thisNode.getIp() << " Client: " << (*thisServer->myClients.rbegin())->loc.x() << ", " << (*thisServer->myClients.rbegin())->loc.y();
-        EV << "##############"<< std::endl;
+        if (globClientCount < maxClients){
+            thisServer->myClients.insert(new Client(thisServer->loc, areaDim));
+            clientCount++;
+            globClientCount++;
+            EV << "##############QuadtreeApp::addClient => " << thisNode.getIp() << " Client: " << (*thisServer->myClients.rbegin())->loc.x() << ", " << (*thisServer->myClients.rbegin())->loc.y();
+            EV << "##############"<< std::endl;
+        }
 }
 
 void QuadtreeApp::removeClient() {
@@ -333,6 +339,7 @@ void QuadtreeApp::removeClient() {
 //        delete *thisServer->myClients.rbegin();
         thisServer->myClients.erase(*thisServer->myClients.rbegin());
         clientCount--;
+        globClientCount--;
     }
 }
 
@@ -369,6 +376,7 @@ void QuadtreeApp::clientUpdate() {
             EV << "QuadTreeApp::clientUpdate => Transfer clients to " << *sit << std::endl;
             callRoute(*sit,clientTMsg->dup());
             emit(msgCountSig, 1);
+            emit(clientMigrate, notMine.size());
         }
         delete clientTMsg;
         EV << "------------ Transfer Clients--------------" << std::endl;

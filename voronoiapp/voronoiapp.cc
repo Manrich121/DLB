@@ -39,8 +39,12 @@ void VoronoiApp::initializeApp(int stage)
 
 //    srand(time(NULL));
     // Get params set in .ini file
-    maxServers = par("largestKey");
+    maxServers = par("maxServers");
+    areaDim = par("areaDim");
+    maxClients = par("maxClients");
+    leaveChance = par("leaveChance");
     clientCount = 0;
+    globClientCount = 0;
     neighCount = 0;
     myKey = OverlayKey::ZERO;
     thisServer = NULL;
@@ -48,11 +52,13 @@ void VoronoiApp::initializeApp(int stage)
     //TODO: add WATCH on data vars to record
     WATCH(sCount);
     WATCH(clientCount);
+    WATCH(globClientCount);
     WATCH(neighCount);
     WATCH(myKey);
 
     // Register signals
     msgCountSig = registerSignal("numMsg");
+    clientMigrate = registerSignal("numClients");
 
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -110,11 +116,10 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
             if (msg == clientAddTimer) {
                 scheduleAt(simTime() + 1, clientAddTimer);
                 if (thisServer != NULL){
-                    double r = uniform(1,100);
-                    if (r>20){
+                    double r = uniform(0,1);
+                    if (r > leaveChance){
                         addClient();
                     }else{
-    //                  Remove client
                         removeClient();
                     }
                 }
@@ -145,20 +150,16 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                             serverTimer = new cMessage("Server load check");
                             scheduleAt(simTime() + 2, serverTimer);
 
-                            thisServer = new VoroServer(myKey, WIDTH/2,WIDTH/2);
+                            thisServer = new VoroServer(myKey, areaDim/2,areaDim/2, areaDim);
                             // Add first area
                             std::vector<Point> p;
-                            p.push_back(Point(WIDTH,0));
-                            p.push_back(Point(WIDTH,WIDTH));
+                            p.push_back(Point(areaDim,0));
+                            p.push_back(Point(areaDim,areaDim));
                             p.push_back(Point(0,0));
-                            p.push_back(Point(0,WIDTH));
+                            p.push_back(Point(0,areaDim));
                             thisServer->GrahamScan(p);
 
                             thisServer->setMasterKey(myKey);
-                            addClient();
-                            addClient();
-                            addClient();
-                            addClient();
                             addClient();
                             sCount=1;
                         }
@@ -208,7 +209,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
     case SERVER_MSG : {
         myKey = this->overlay->getThisNode().getKey();
         // Create new VoroServer object and assign values to it
-        thisServer = new VoroServer;
+        thisServer = new VoroServer(myKey, areaDim);
         *thisServer = myMsg->getVoroServer();
         this->clientCount = thisServer->myClients.size();
         EV << "+++++++++++++++++\nVoronoiApp::deliver => " << myKey << " Got my new server state" << std::endl;
@@ -330,10 +331,13 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
 }
 
 void VoronoiApp::addClient() {
-        thisServer->myClients.insert(new Client(thisServer->loc, WIDTH));
+    if (globClientCount < maxClients){
+        thisServer->myClients.insert(new Client(thisServer->loc, areaDim));
         clientCount++;
+        globClientCount++;
         EV << "##############VoronoiApp::addClient => " << thisNode.getIp() << " Client: " << (*thisServer->myClients.rbegin())->loc.x() << ", " << (*thisServer->myClients.rbegin())->loc.y();
         EV << "##############"<< std::endl;
+    }
 }
 
 void VoronoiApp::removeClient() {
@@ -343,6 +347,7 @@ void VoronoiApp::removeClient() {
 //        delete *thisServer->myClients.rbegin();
         thisServer->myClients.erase(*thisServer->myClients.rbegin());
         clientCount--;
+        globClientCount++;
     }
 }
 
@@ -380,6 +385,7 @@ void VoronoiApp::clientUpdate() {
             EV << "VoronoiApp::clientUpdate => Transfer clients to " << (*sit).first << std::endl;
             callRoute((*sit).first,clientTMsg->dup());
             emit(msgCountSig, 1);
+            emit(clientMigrate, notMine.size());
         }
         delete clientTMsg;
         EV << "------------ Transfer Clients--------------" << std::endl;
@@ -472,9 +478,11 @@ OverlayKey VoronoiApp::getNewServerKey() {
 void VoronoiApp::sendNewServer(OverlayKey newKey) {
     EV << "+++++++++++++++++ " << thisNode.getIp() << " SendNewServer ++++++++++++++++++" << std::endl;
     EV << "VoronoiApp::sendNewServer to key: " << newKey << std::endl;
-    VoroServer* newServer = new VoroServer(newKey); // Init a new server object with key=newKey
+    VoroServer* newServer = new VoroServer(newKey, areaDim); // Init a new server object with key=newKey
     newServer->setMasterKey(thisServer->masterKey); // Set master key used to request new server when loaded
     newServer->key = newKey;
+
+    EV << "newServer.areaDim" << newServer->areaDim;
     thisServer->refine(newServer);
     clientCount = thisServer->myClients.size();
 

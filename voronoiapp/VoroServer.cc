@@ -25,7 +25,7 @@ VoroServer::VoroServer(){
     parent = NULL;
 }
 
-VoroServer::VoroServer(OverlayKey k){
+VoroServer::VoroServer(OverlayKey k, int areaDim){
     key = k;
     loc = Point(0,0);
     lvl = -1;           // Set lvl to -1 indicationg that it has not been assigned
@@ -33,12 +33,13 @@ VoroServer::VoroServer(OverlayKey k){
     childCount = 0;
     cell.origin = NULL;
     parent = NULL;
+    this->areaDim = areaDim;
 }
 
 VoroServer::~VoroServer() {
 }
 
-VoroServer::VoroServer(OverlayKey k, double x, double y)
+VoroServer::VoroServer(OverlayKey k, double x, double y, int areaDim)
 {
     key = k;
     loc = Point(x,y);
@@ -47,6 +48,7 @@ VoroServer::VoroServer(OverlayKey k, double x, double y)
     childCount = 0;
     cell.origin = NULL;
     parent = NULL;
+    this->areaDim = areaDim;
 }
 
 void VoroServer::setMasterKey(OverlayKey k) {
@@ -147,16 +149,16 @@ void VoroServer::generateVoronoi() {
     float yValues[count];
 
     vPoints.push_back(Point(0,0));
-    vPoints.push_back(Point(WIDTH,0));
-    vPoints.push_back(Point(WIDTH,WIDTH));
-    vPoints.push_back(Point(0,WIDTH));
+    vPoints.push_back(Point(areaDim,0));
+    vPoints.push_back(Point(areaDim,areaDim));
+    vPoints.push_back(Point(0,areaDim));
 
     for (int i=0;i<count;i++) {
         xValues[i] = points.at(i).x();
         yValues[i] = points.at(i).y();
     }
 
-    vdg.generateVoronoi(xValues,yValues,count, 0,WIDTH,0,WIDTH);
+    vdg.generateVoronoi(xValues,yValues,count, 0,areaDim,0,areaDim);
 
     vdg.resetIterator();
 //    printf("\n-------------------------------\n");
