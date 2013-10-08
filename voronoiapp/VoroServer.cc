@@ -15,6 +15,8 @@
 
 #include "VoroServer.h"
 
+#define EPS 0.001
+
 VoroServer::VoroServer(){
     key = OverlayKey::ZERO;
     loc = Point(0,0);

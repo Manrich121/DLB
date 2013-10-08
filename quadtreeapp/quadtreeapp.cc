@@ -40,6 +40,7 @@ void QuadtreeApp::initializeApp(int stage)
     // Get params set in .ini file
     maxServers = par("maxServers");
     maxClients = par("maxClients");
+    clientPeriod = par("clientPeriod");
     leaveChance = par("leaveChance");
     areaDim = par("areaDim");
     globClientCount = 0;
@@ -74,11 +75,6 @@ void QuadtreeApp::initializeApp(int stage)
 
 // finishApp is called when this module is being distroyed
 void QuadtreeApp::finishApp(){
-    cancelAndDelete(serverTimer);
-    cancelAndDelete(clientMoveTimer);
-    cancelAndDelete(clientAddTimer);
-    cancelAndDelete(ticTimer);
-    // TODO: globalStatistics->addStdDev("ManApplication: Sent packets", numSent);
 }
 
 // handleTimerEvent() is called when a self message is received
@@ -118,7 +114,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
              */
 
             if (msg == clientAddTimer) {
-                scheduleAt(simTime() + 1, clientAddTimer);
+                scheduleAt(simTime() + clientPeriod, clientAddTimer);
                 if (thisServer != NULL){
                     double r = uniform(0,1);
                     if (r > leaveChance){
@@ -145,7 +141,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                         sCount = 0;
                         if(master){
                             clientAddTimer = new cMessage("Client: Add or Remove");
-                            scheduleAt(simTime() + 1, clientAddTimer);
+                            scheduleAt(simTime() + clientPeriod, clientAddTimer);
 
                             // start client timer
                             this->clientMoveTimer = new cMessage("ClientMove Timer");
@@ -161,10 +157,10 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
 
                             sCount=1;
                         }
-                        cancelAndDelete(msg);
+                        delete msg;
                     }else{
                         // Unknown messages can be deleted
-                        cancelAndDelete(msg);
+                        delete msg;
                     }
                 }
             }
@@ -405,10 +401,17 @@ void QuadtreeApp::checkLoad() {
         }
     }else{
         if(thisServer->underLoaded()) {
-            if (thisServer->parent != NULL && thisServer->parent->lvl == thisServer->lvl && thisServer->childCount == 0) {
-                EV << "******************** Underload **********************" << std::endl;
+            EV << "******************** Underload **********************" << std::endl;
+            EV << "thisServer.parent.key " << thisServer->parent->key << "\n"
+                    << "thisServer.lvl " << thisServer->lvl << "\n"
+                    << "thisServer.parent.lvl " << thisServer->parent->lvl << "\n"
+                    << "thisServer.cell.n " << thisServer->cell.n << std::endl;
+
+            if (thisServer->parent != NULL && thisServer->parent->lvl == thisServer->lvl && thisServer->cell.n == 1) {
+
                 EV << "QuadtreeApp::checkLoad " << thisNode.getIp() << " underload transfering area and clients to parent (if possible)" << std::endl;
 
+//                endSimulation();
                 DLBMessage* sretMsg = new DLBMessage();
                 sretMsg->setType(RETSERV_MSG);
                 sretMsg->setSenderKey(myKey);
@@ -424,8 +427,8 @@ void QuadtreeApp::checkLoad() {
                 //Cancel all timers
                 cancelAndDelete(serverTimer);
                 cancelAndDelete(clientMoveTimer);
-                cancelAndDelete(clientAddTimer);
-                cancelAndDelete(ticTimer);
+//                cancelAndDelete(clientAddTimer);
+//                cancelAndDelete(ticTimer);
                 EV << "Cancel all timers" << std::endl;
                 EV << "******************** Underload **********************" << std::endl;
 

@@ -26,6 +26,7 @@ simple VoronoiApp extends BaseApp
         int maxServers;            // largest key we can pick
         int maxClients;
         int areaDim;
+        double clientPeriod;
         double leaveChance;      // chance that a client leaves
         @statistic[numMsg](title="number of Msg"; source="numMsg"; record=vector,stats; interpolationmode=none);
         @statistic[numClients](title="number of Client migrations"; source="numClients"; record=vector,stats; interpolationmode=none);

@@ -42,6 +42,7 @@ void VoronoiApp::initializeApp(int stage)
     maxServers = par("maxServers");
     areaDim = par("areaDim");
     maxClients = par("maxClients");
+    clientPeriod = par("clientPeriod");
     leaveChance = par("leaveChance");
     clientCount = 0;
     globClientCount = 0;
@@ -77,11 +78,6 @@ void VoronoiApp::initializeApp(int stage)
 
 // finishApp is called when this module is being distroyed
 void VoronoiApp::finishApp(){
-    cancelAndDelete(serverTimer);
-    cancelAndDelete(clientMoveTimer);
-    cancelAndDelete(clientAddTimer);
-    cancelAndDelete(ticTimer);
-    // TODO: globalStatistics->addStdDev("ManApplication: Sent packets", numSent);
 }
 
 // handleTimerEvent() is called when a self message is received
@@ -114,7 +110,7 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
              */
 
             if (msg == clientAddTimer) {
-                scheduleAt(simTime() + 1, clientAddTimer);
+                scheduleAt(simTime() + clientPeriod, clientAddTimer);
                 if (thisServer != NULL){
                     double r = uniform(0,1);
                     if (r > leaveChance){
@@ -128,7 +124,7 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                  * Update thisServer's client movement and check ownership
                  */
                 if (msg == clientMoveTimer) {
-                    scheduleAt(simTime() + 0.2, clientMoveTimer);
+                    scheduleAt(simTime() + 0.5, clientMoveTimer);
                     if (thisServer != NULL) {
                         if (thisServer->myClients.size() > 0) {
                             EV << "thisServer.myClients.size()" << thisServer->myClients.size() << std::endl;
@@ -141,11 +137,11 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                         sCount = 0;
                         if(master){
                             clientAddTimer = new cMessage("Client: Add or Remove");
-                            scheduleAt(simTime() + 1, clientAddTimer);
+                            scheduleAt(simTime() + clientPeriod, clientAddTimer);
 
                             // start client timer
                             this->clientMoveTimer = new cMessage("ClientMove Timer");
-                            scheduleAt(simTime() + 0.2, clientMoveTimer);
+                            scheduleAt(simTime() + 0.5, clientMoveTimer);
 
                             serverTimer = new cMessage("Server load check");
                             scheduleAt(simTime() + 2, serverTimer);

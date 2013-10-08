@@ -40,6 +40,7 @@ class QuadtreeApp: public BaseApp {
     int clientCount;
     int areaDim;
     double leaveChance;
+    double clientPeriod;
     int neighCount;
     bool master;
     OverlayKey myKey;

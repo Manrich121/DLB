@@ -1,8 +1,6 @@
 #ifndef POINT_H
 #define POINT_H
 
-#define EPS 0.01
-
 #include <iostream>
 #include <cmath>
 

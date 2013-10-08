@@ -67,7 +67,7 @@ bool QuadServer::isLoaded() {
 }
 
 bool QuadServer::underLoaded() {
-    return (this->lvl !=-1 && this->myClients.size()<MINCLIENTS && this->cell.n==1);
+    return this->myClients.size()<MINCLIENTS;
 }
 
 /*
@@ -251,7 +251,7 @@ bool QuadServer::returnArea() {
             this->parent->myClients.insert(*cit);
         }
 
-        this->parent->checkOwnership();
+//        this->parent->checkOwnership();
 
         // Set lvl be deleted
         this->lvl = -1;
