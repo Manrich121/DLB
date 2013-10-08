@@ -341,20 +341,20 @@ void VoroServer::GrahamSort(std::vector<Point> points) {
 }
 
 void VoroServer::GrahamScan(std::vector<Point> p) {
-    vector<Vector> *points = new vector<Vector>;
-    vector<Vector> *convexHull = new vector<Vector>;
-    float znew = 0.0f;
-    float wnew = 1.0f;
+    std::vector<point2d> points;
+    std::vector<point2d> convex_hull;
 
-    for (unsigned int i=0; i< p.size();i++) {
-        points->push_back(Vector(p[i].x(),p[i].y(), znew, wnew));
+    for (unsigned int i=0; i<p.size();i++){
+        point2d tmp_pnt;
+        tmp_pnt.x = p.at(i).x();
+        tmp_pnt.y = p.at(i).y();
+        points.push_back(tmp_pnt);
     }
 
-    if(!ConvexHullAlgs::GrahamsScan(convexHull, points))
-        printf("error computing convex hull\n");
+    GrahamScanConvexHull()(points, convex_hull);
 
-    for (unsigned int i=0;i<convexHull->size();i++){
-        this->addVertex(Point(convexHull->at(i).x,convexHull->at(i).y),true);
+    for(unsigned int i=0; i<convex_hull.size();i++){
+        this->addVertex(Point(convex_hull.at(i).x,convex_hull.at(i).y),true);
     }
 }
 

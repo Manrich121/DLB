@@ -23,7 +23,8 @@
 #include <algorithm>    // std::sort
 #include "Point.h"
 #include "Client.h"
-#include "ConvexHullAlgs.h"
+#include "ConvexHull.h"
+#include "GrahamScanConvexHull.h"
 #include "VoronoiDiagramGenerator.h"
 
 // Oversim

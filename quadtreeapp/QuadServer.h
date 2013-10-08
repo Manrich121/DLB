@@ -23,7 +23,6 @@
 #include <algorithm>    // std::sort
 #include "Point.h"
 #include "Client.h"
-#include "ConvexHullAlgs.h"
 
 // Oversim
 #include <OverlayKey.h>
