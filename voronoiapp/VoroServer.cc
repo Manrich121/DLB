@@ -402,9 +402,10 @@ bool VoroServer::pointInPolygon(Point p) {
         polyYj = verts[j].y();
         polyXj = verts[j].x();
 
-        if ( ((polyYi>y) != (polyYj>y)) &&
-             (x < (polyXj-polyXi) * (y-polyYi) / (polyYj-polyYi) + polyXi) ) {
-            oddNodes =! oddNodes;
+        if ((polyYi >= y) != (polyYj >= y)) {
+          if (polyXi+(polyXj-polyXi)*(y-polyYi)/(polyYj-polyYi)>=x) {
+            oddNodes=!oddNodes;
+          }
         }
 
         j=i;

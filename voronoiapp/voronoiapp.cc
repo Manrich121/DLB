@@ -136,6 +136,7 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                         myKey = this->overlay->getThisNode().getKey();
                         sCount = 0;
                         if(master){
+                            inUse.insert(myKey);
                             clientAddTimer = new cMessage("Client: Add or Remove");
                             scheduleAt(simTime() + clientPeriod, clientAddTimer);
 
@@ -245,7 +246,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         if (master){
             OverlayKey slaveKey = myMsg->getSenderKey();
             delete myMsg;
-            OverlayKey newKey = this->getNewServerKey();
+            OverlayKey newKey = this->getNewServerKey(slaveKey);
             if (!newKey.isUnspecified()) {
                 DLBMessage *myMessage; // the message we'll send
                 myMessage = new DLBMessage();
@@ -392,7 +393,7 @@ void VoronoiApp::checkLoad() {
     if (thisServer->isLoaded()){
         if (master) {
             // Select new server key
-            OverlayKey newKey =  getNewServerKey();
+            OverlayKey newKey =  getNewServerKey(myKey);
             if (newKey.isUnspecified())
                 return;
             sendNewServer(newKey);
@@ -450,17 +451,18 @@ void VoronoiApp::checkLoad() {
     this->neighCount = thisServer->neighbours.size();
 }
 
-OverlayKey VoronoiApp::getNewServerKey() {
+OverlayKey VoronoiApp::getNewServerKey(OverlayKey key) {
     std::vector<NodeHandle>::const_iterator it;
     std::set<OverlayKey>::iterator kit;
-    NodeVector* neighs = this->overlay->neighborSet(maxServers);
+//    NodeVector* neighs = this->overlay->neighborSet(maxServers);
+    NodeVector* neighs = this->overlay->local_lookup(key, maxServers, false);
 
     if (sCount < maxServers) {
         EV << "VoronoiApp::checkLoad =>My " << thisNode.getIp() << " OverlayNeighbours size: " << neighs->size()-1 << std::endl;
 
         for (it = neighs->begin(); it != neighs->end(); it++) {
             kit = inUse.find((*it).getKey());
-            if (kit == inUse.end() && (*it).getKey() != myKey) {
+            if (kit == inUse.end()) {
                 inUse.insert((*it).getKey());
                 EV << "VoronoiApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
                 sCount = inUse.size()+1;

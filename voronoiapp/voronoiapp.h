@@ -61,7 +61,7 @@ class VoronoiApp: public BaseApp {
     void removeClient();
     void clientUpdate();
     void checkLoad();
-    OverlayKey getNewServerKey();
+    OverlayKey getNewServerKey(OverlayKey key);
     void sendNewServer(OverlayKey newKey);
     void returnServer(VoroServer* retServer);
     void updateNeighbours(VoroServer* newServer);
