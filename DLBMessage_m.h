@@ -43,6 +43,7 @@ typedef std::list<Rectangle*> rectVect;
  *     NEIGH_REQ = 7;			
  *     NEIGH_A_R = 8;			
  *     DEBUG_MSG = 9;			
+ *     CLIENTT_ACK = 10;
  * }
  * </pre>
  */
@@ -55,7 +56,8 @@ enum MessageType {
     FREEME_MSG = 6,
     NEIGH_REQ = 7,
     NEIGH_A_R = 8,
-    DEBUG_MSG = 9
+    DEBUG_MSG = 9,
+    CLIENTT_ACK = 10
 };
 
 /**

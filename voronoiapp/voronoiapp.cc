@@ -43,6 +43,7 @@ void VoronoiApp::initializeApp(int stage)
     areaDim = par("areaDim");
     maxClients = par("maxClients");
     clientPeriod = par("clientPeriod");
+    loadPeriod = par("loadPeriod");
     leaveChance = par("leaveChance");
     clientCount = 0;
     globClientCount = 0;
@@ -105,7 +106,7 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
      *  Check load of a server
      */
         if (msg == serverTimer) {
-            scheduleAt(simTime() + 2, serverTimer);
+            scheduleAt(simTime() + loadPeriod, serverTimer);
             if (thisServer != NULL){
                 checkLoad();
             }
@@ -132,7 +133,6 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                     scheduleAt(simTime() + 0.5, clientMoveTimer);
                     if (thisServer != NULL) {
                         if (thisServer->myClients.size() > 0) {
-                            EV << "thisServer.myClients.size()" << thisServer->myClients.size() << std::endl;
                             clientUpdate();
                         }
                     }
@@ -150,7 +150,7 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                             scheduleAt(simTime() + 0.5, clientMoveTimer);
 
                             serverTimer = new cMessage("Server load check");
-                            scheduleAt(simTime() + 2, serverTimer);
+                            scheduleAt(simTime() + loadPeriod, serverTimer);
 
                             thisServer = new VoroServer(myKey, areaDim/2,areaDim/2, areaDim);
                             // Add first area
@@ -232,23 +232,48 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
 
 //      start load Check timer
         serverTimer = new cMessage("Server load check");
-        scheduleAt(simTime() + 2, serverTimer);
+        scheduleAt(simTime() + loadPeriod, serverTimer);
         this->neighCount = thisServer->neighbours.size();
         }delete msg; break;
     case CLIENTRANS_MSG: {
         EV << "------------------ Client Transfer ----------------" << std::endl;
 //                  Check ownership on new clients and insert into thisServer.myClients
         std::vector<Client*> maybeMine = myMsg->getClients();
-        std::vector<Client*>::iterator it;
+        std::vector<Client*> mine;
         for(unsigned int i=0;i<maybeMine.size();i++){
             EV << "VoronoiApp::deliver => Client (" << maybeMine.at(i)->loc.x() << "," << maybeMine.at(i)->loc.y() << ") Mine? " <<  thisServer->ownership(maybeMine.at(i))  << std::endl;
             if(thisServer->ownership(maybeMine.at(i))){
                 thisServer->myClients.insert(maybeMine.at(i));
+                mine.push_back(maybeMine.at(i));
             }
         }
         this->clientCount = thisServer->myClients.size();
+        if(!mine.empty()){
+            OverlayKey senderKey = myMsg->getSenderKey();
+            delete myMsg;
+            DLBMessage *mineMsg = new DLBMessage();
+            mineMsg->setType(CLIENTT_ACK);
+            mineMsg->setSenderKey(myKey);
+            mineMsg->setClients(mine);
+
+            callRoute(senderKey, mineMsg);
+            EV << "Sending CLIENT T_ACK to " << senderKey << " with " << mineMsg->getClients().size() << " client acks" << std::endl;
+        }else{
+            delete myMsg;
+        }
+
         EV << "------------------ Client Transfer ----------------" << std::endl;
-        }delete msg; break;
+        }break;
+    case CLIENTT_ACK: {
+            EV << "^^^clientTransferACK: client.Size " << myMsg->getClients().size() << " notMine.size " << notMine.size() << std::endl;
+            std::vector<Client*> remove = myMsg->getClients();
+            for(unsigned int i=0;i<remove.size();i++){
+                notMine.pop_back();
+                thisServer->myClients.erase(remove[i]);
+                EV << "^^^^clientTransferACK: Remove client: " << remove[i]->loc.x() << ", " << remove[i]->loc.y() << std::endl;
+            }
+            this->clientCount = thisServer->myClients.size();
+    }delete myMsg; break;
     case REQKEY_MSG: {
         if (master){
             OverlayKey slaveKey = myMsg->getSenderKey();
@@ -278,14 +303,6 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         EV << "Return server key : " << retServer.key << std::endl;
 
         returnServer(&retServer);
-
-        DLBMessage* freeMsg = new DLBMessage();
-        freeMsg->setType(FREEME_MSG);
-        freeMsg->setSenderKey(retServer.key);
-        freeMsg->setByteLength(sizeof(retServer.key));
-
-        callRoute(thisServer->masterKey, freeMsg);
-        emit(msgCountSig, 1);
         EV << "**************" << std::endl;
 
     }delete msg; break;
@@ -342,6 +359,17 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         thisServer->generateVoronoi();          // Recalculate voronoi diagram
         cellN = thisServer->cell.n;
         this->neighCount = thisServer->neighbours.size();
+
+        std::vector<Client*> maybeMine = myMsg->getClients();
+        if (!maybeMine.empty()) {
+            for(unsigned int i=0;i<maybeMine.size();i++){
+                EV << "VoronoiApp::deliver => Client (" << maybeMine.at(i)->loc.x() << "," << maybeMine.at(i)->loc.y() << ") Mine? " <<  thisServer->ownership(maybeMine.at(i))  << std::endl;
+                if(thisServer->ownership(maybeMine.at(i))){
+                    thisServer->myClients.insert(maybeMine.at(i));
+                }
+            }
+            this->clientCount = thisServer->myClients.size();
+        }
     }delete myMsg; break;
     }
 }
@@ -363,15 +391,18 @@ void VoronoiApp::removeClient() {
 //        delete *thisServer->myClients.rbegin();
         thisServer->myClients.erase(*thisServer->myClients.rbegin());
         clientCount--;
-        globClientCount++;
+        globClientCount--;
     }
 }
 
 void VoronoiApp::clientUpdate() {
     set <Client*>::iterator it;
     set <Client*>::iterator tmp;
-    std::vector<Client*> notMine;
 
+//    if(!notMine.empty()){
+//        EV << "CLIENT ERRRORORORORO LOST" << std::endl;
+//        endSimulation();
+//    }
     EV << "------------ "<< thisNode.getIp()<< " Update " << thisServer->myClients.size() << " Clients--------------" << std::endl;
     for (it = thisServer->myClients.begin(); it != thisServer->myClients.end();it++) {
        (*it)->move();
@@ -379,8 +410,8 @@ void VoronoiApp::clientUpdate() {
        if (!thisServer->ownership(*it)){
            EV << "VoronoiApp::clientUpdate: Transfer client: " << (*it)->loc.x() << ", " << (*it)->loc.y() << std::endl;
            notMine.push_back(*it);
-           thisServer->myClients.erase(*it);
-           clientCount--;
+//           thisServer->myClients.erase(*it);
+//           clientCount--;
        }
     }
 
@@ -414,8 +445,11 @@ void VoronoiApp::checkLoad() {
         if (master) {
             // Select new server key
             OverlayKey newKey =  getNewServerKey(myKey);
-            if (newKey.isUnspecified())
-                return;
+            if (newKey.isUnspecified()){
+                newKey =  getNewServerKey(thisServer->masterKey);
+               if(newKey.isUnspecified())
+                   return;
+            }
             sendNewServer(newKey);
         }else{
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
@@ -451,6 +485,14 @@ void VoronoiApp::checkLoad() {
                 }
 
                 delete sretMsg;
+
+                DLBMessage* freeMsg = new DLBMessage();
+                freeMsg->setType(FREEME_MSG);
+                freeMsg->setSenderKey(myKey);
+                freeMsg->setByteLength(sizeof(myKey));
+
+                callRoute(thisServer->masterKey, freeMsg);
+                emit(msgCountSig, 1);
 
                 clientCount = 0;
                 neighCount = 0;
@@ -527,18 +569,14 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
     set <Client*>::iterator cit;
     map <OverlayKey, Point>::iterator it;
 
-    EV << "Transfer all myClients" << std::endl;
-    // Transfer all myClients
-    for (cit = retServer->myClients.begin(); cit != retServer->myClients.end();cit++) {
-        thisServer->myClients.insert(*cit);
-    }
-    this->clientCount = thisServer->myClients.size();
+    std::vector<Client*> output(retServer->myClients.begin(), retServer->myClients.end());
 
     EV << "Update neigbours" << std::endl;
     DLBMessage *removeMsg = new DLBMessage();
     removeMsg->setType(NEIGH_A_R);
     removeMsg->setSenderKey(OverlayKey::UNSPECIFIED_KEY);
     removeMsg->setRemoveKey(retServer->key);
+    removeMsg->setClients(output);
     removeMsg->setByteLength(sizeof(myKey));
 
     // Send to removeMsg myself
@@ -566,6 +604,16 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
     EV << "myClients.size() : " << retServer->myClients.size() << std::endl;
     EV << "myNeighbours.size() : " << retServer->neighbours.size() << std::endl;
     EV << "Lvl : " << retServer->lvl << std::endl;
+    thisServer->generateVoronoi();
+
+    EV << "Transfer all myClients" << std::endl;
+    // Transfer all myClients
+    for (cit = retServer->myClients.begin(); cit != retServer->myClients.end();cit++) {
+        if(thisServer->ownership(*cit))
+            thisServer->myClients.insert(*cit);
+    }
+    this->clientCount = thisServer->myClients.size();
+
 }
 
 void VoronoiApp::updateNeighbours(VoroServer* newServer) {

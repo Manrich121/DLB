@@ -42,6 +42,7 @@ EXECUTE_ON_STARTUP(
     e->insert(NEIGH_REQ, "NEIGH_REQ");
     e->insert(NEIGH_A_R, "NEIGH_A_R");
     e->insert(DEBUG_MSG, "DEBUG_MSG");
+    e->insert(CLIENTT_ACK, "CLIENTT_ACK");
 );
 
 Register_Class(DLBMessage);

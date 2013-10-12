@@ -44,6 +44,7 @@ enum MessageType
     NEIGH_REQ = 7;			// message used to transfer thisServer's rectangles
     NEIGH_A_R = 8;			// message used to add or remove the sender as a neighbour
     DEBUG_MSG = 9;			// message used to test ping-pong funtions
+    CLIENTT_ACK = 10;
 }
 
 packet DLBMessage {

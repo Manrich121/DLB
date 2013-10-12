@@ -42,6 +42,7 @@ class VoronoiApp: public BaseApp {
     int areaDim;
     double leaveChance;
     double clientPeriod;
+    double loadPeriod;
     int neighCount;
     int cellN;
     double area;
@@ -52,6 +53,7 @@ class VoronoiApp: public BaseApp {
     // Master server params
     int sCount;
     std::set<OverlayKey> inUse;
+    std::vector<Client*> notMine;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created

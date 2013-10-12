@@ -41,6 +41,7 @@ void QuadtreeApp::initializeApp(int stage)
     maxServers = par("maxServers");
     maxClients = par("maxClients");
     clientPeriod = par("clientPeriod");
+    loadPeriod = par("loadPeriod");
     leaveChance = par("leaveChance");
     areaDim = par("areaDim");
     globClientCount = 0;
@@ -105,7 +106,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
      *  Check load of a server
      */
         if (msg == serverTimer) {
-            scheduleAt(simTime() + 2, serverTimer);
+            scheduleAt(simTime() + loadPeriod, serverTimer);
             if (thisServer != NULL){
                 checkLoad();
             }
@@ -150,7 +151,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                             scheduleAt(simTime() + 0.2, clientMoveTimer);
 
                             serverTimer = new cMessage("Server load check");
-                            scheduleAt(simTime() + 2, serverTimer);
+                            scheduleAt(simTime() + loadPeriod, serverTimer);
 
                             thisServer = new QuadServer(myKey, areaDim/2,areaDim/2);
                             thisServer->setMasterKey(myKey);
@@ -225,7 +226,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
 
         // start load Check timer
         serverTimer = new cMessage("Server load check");
-        scheduleAt(simTime() + 2, serverTimer);
+        scheduleAt(simTime() + loadPeriod, serverTimer);
 
         }delete msg; break;
     case CLIENTRANS_MSG: {
@@ -272,13 +273,6 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
 
         returnServer(&retServer);
 
-        DLBMessage* freeMsg = new DLBMessage();
-        freeMsg->setType(FREEME_MSG);
-        freeMsg->setSenderKey(retServer.key);
-        freeMsg->setByteLength(sizeof(retServer.key));
-
-        callRoute(thisServer->masterKey, freeMsg);
-        emit(msgCountSig, 1);
         EV << "**************" << std::endl;
 
     }delete msg; break;
@@ -387,8 +381,11 @@ void QuadtreeApp::checkLoad() {
         if (master) {
             // Select new server key
             OverlayKey newKey =  getNewServerKey(myKey);
-            if (newKey.isUnspecified())
-                return;
+            if (newKey.isUnspecified()){
+                newKey =  getNewServerKey(thisServer->masterKey);
+                if(newKey.isUnspecified())
+                    return;
+            }
             sendNewServer(newKey);
         }else{
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
@@ -422,6 +419,14 @@ void QuadtreeApp::checkLoad() {
                 sretMsg->setByteLength(sizeof(*thisServer));
 
                 callRoute(thisServer->parent->key, sretMsg);
+                emit(msgCountSig, 1);
+
+                DLBMessage* freeMsg = new DLBMessage();
+                freeMsg->setType(FREEME_MSG);
+                freeMsg->setSenderKey(myKey);
+                freeMsg->setByteLength(sizeof(myKey));
+
+                callRoute(thisServer->masterKey, freeMsg);
                 emit(msgCountSig, 1);
 
 //                delete thisServer;

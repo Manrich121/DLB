@@ -27,6 +27,7 @@ simple VoronoiApp extends BaseApp
         int maxClients;
         int areaDim;
         double clientPeriod;
+        double loadPeriod;
         double leaveChance;      // chance that a client leaves
         @signal[numMsg](type="int");
         @statistic[numMsg](title="number of Msg"; source="numMsg"; record=vector,stats; interpolationmode=none);
