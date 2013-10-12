@@ -51,8 +51,8 @@ void Client::move() {
     if (y>edge-1) {
         y = edge-1;
     }
-    if(y<0) {
-        y=0;
+    if(y<1) {
+        y=1;
     }
 
     loc.setX(x);

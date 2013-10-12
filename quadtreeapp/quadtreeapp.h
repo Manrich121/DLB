@@ -25,6 +25,7 @@ class QuadtreeApp: public BaseApp {
     //Stats signals
     simsignal_t msgCountSig;
     simsignal_t clientMigrate;
+    simsignal_t clientOwn;
 
     // Self timer messages
     cMessage *ticTimer;
@@ -60,7 +61,7 @@ class QuadtreeApp: public BaseApp {
     void removeClient();
     void clientUpdate();
     void checkLoad();
-    OverlayKey getNewServerKey();
+    OverlayKey getNewServerKey(OverlayKey key);
     void sendNewServer(OverlayKey newKey);
     void returnServer(QuadServer* retServer);
     void updateNeighbours();

@@ -47,19 +47,24 @@ void VoronoiApp::initializeApp(int stage)
     clientCount = 0;
     globClientCount = 0;
     neighCount = 0;
+    cellN = 0;
+    area = 0;
     myKey = OverlayKey::ZERO;
     thisServer = NULL;
 
     //TODO: add WATCH on data vars to record
     WATCH(sCount);
-    WATCH(clientCount);
     WATCH(globClientCount);
+    WATCH(clientCount);
     WATCH(neighCount);
+    WATCH(cellN);
+    WATCH(area);
     WATCH(myKey);
 
     // Register signals
     msgCountSig = registerSignal("numMsg");
     clientMigrate = registerSignal("numClients");
+    clientOwn = registerSignal("numClientOwn");
 
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -155,6 +160,7 @@ void VoronoiApp::handleTimerEvent(cMessage* msg){
                             p.push_back(Point(0,0));
                             p.push_back(Point(0,areaDim));
                             thisServer->GrahamScan(p);
+                            area=thisServer->calcArea();
 
                             thisServer->setMasterKey(myKey);
                             addClient();
@@ -216,7 +222,8 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
              << "neighbours[0] : " << (*thisServer->neighbours.begin()).first << "\n"
              << "myClients.size : " << thisServer->myClients.size() << "\n"
              << "cell.n : " << thisServer->cell.n << std::endl;
-
+        cellN = thisServer->cell.n;
+        area = thisServer->calcArea();
         EV << "+++++++++++++++" << std::endl;
 
         // start client timer
@@ -231,12 +238,12 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
     case CLIENTRANS_MSG: {
         EV << "------------------ Client Transfer ----------------" << std::endl;
 //                  Check ownership on new clients and insert into thisServer.myClients
-        std::vector<Client*> notMine = myMsg->getClients();
+        std::vector<Client*> maybeMine = myMsg->getClients();
         std::vector<Client*>::iterator it;
-        for(unsigned int i=0;i<notMine.size();i++){
-            EV << "VoronoiApp::deliver => Client (" << notMine.at(i)->loc.x() << "," << notMine.at(i)->loc.y() << ") Mine? " <<  thisServer->ownership(notMine.at(i))  << std::endl;
-            if(thisServer->ownership(notMine.at(i))){
-                thisServer->myClients.insert(notMine.at(i));
+        for(unsigned int i=0;i<maybeMine.size();i++){
+            EV << "VoronoiApp::deliver => Client (" << maybeMine.at(i)->loc.x() << "," << maybeMine.at(i)->loc.y() << ") Mine? " <<  thisServer->ownership(maybeMine.at(i))  << std::endl;
+            if(thisServer->ownership(maybeMine.at(i))){
+                thisServer->myClients.insert(maybeMine.at(i));
             }
         }
         this->clientCount = thisServer->myClients.size();
@@ -286,7 +293,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         // Test to see if I am master
         if(master){
             inUse.erase(myMsg->getSenderKey());
-            sCount = inUse.size()+1;
+            sCount = inUse.size();
             EV << "**************\n Erased inUse["<<myMsg->getSenderKey() << "]" << std::endl;
         }
     }delete msg; break;
@@ -297,19 +304,28 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
             thisServer->neighbours[senderKey] = myMsg->getSenderLoc();
 
             thisServer->generateVoronoi();          // Recalculate voronoi diagram
+            cellN = thisServer->cell.n;
+            area = thisServer->calcArea();
 
-            DLBMessage* ackNeigh = new DLBMessage();
-            ackNeigh->setType(NEIGH_A_R);
-            ackNeigh->setSenderKey(myKey);
-            ackNeigh->setSenderLoc(thisServer->loc);
-            callRoute(senderKey, ackNeigh);
-            emit(msgCountSig, 1);
-            EV << "VoronoiApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
+//            DLBMessage* ackNeigh = new DLBMessage();
+//            ackNeigh->setType(NEIGH_A_R);
+//            ackNeigh->setSenderKey(myKey);
+//            ackNeigh->setSenderLoc(thisServer->loc);
+//            ackNeigh->setRemoveKey(OverlayKey::UNSPECIFIED_KEY);
+//
+//            callRoute(senderKey, ackNeigh);
+//            emit(msgCountSig, 1);
+            EV << "VoronoiApp::" << thisNode.getIp() <<" Inserting my new neighbour " << senderKey << std::endl;
         }
         this->neighCount = thisServer->neighbours.size();
     }delete myMsg;break;
     case NEIGH_A_R : {
         OverlayKey removeKey = myMsg->getRemoveKey();
+        EV << "NEIGH_ADD_REMOVE:: " << thisNode.getIp() << "\n";
+        EV << "RemoveKey.unspec " << removeKey.isUnspecified() << "\n";
+        EV << "AddKey " << myMsg->getSenderKey() << "\n";
+        EV << "isNeigh " << thisServer->isNeigh(myMsg->getSenderLoc()) << "\n";
+
         if(!removeKey.isUnspecified()) {
             thisServer->neighbours.erase(removeKey);
             EV << "VoronoiApp::" << thisNode.getIp() << " Remove key " << removeKey << std::endl;
@@ -317,11 +333,14 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
 
         OverlayKey senderKey = myMsg->getSenderKey();
         if (!senderKey.isUnspecified()){
-            thisServer->neighbours[senderKey] = myMsg->getSenderLoc();
-            EV << "VoronoiApp::" << thisNode.getIp() << " Inserting new neighbour " << senderKey << std::endl;
+            if (thisServer->isNeigh(myMsg->getSenderLoc())){
+                thisServer->neighbours[senderKey] = myMsg->getSenderLoc();
+                EV << "VoronoiApp::" << thisNode.getIp() << " Inserting new neighbour " << senderKey << std::endl;
+            }
         }
         EV << "VoronoiApp::" << thisNode.getIp() << " Neighbours size : " << thisServer->neighbours.size() << "\n";
         thisServer->generateVoronoi();          // Recalculate voronoi diagram
+        cellN = thisServer->cell.n;
         this->neighCount = thisServer->neighbours.size();
     }delete myMsg; break;
     }
@@ -390,6 +409,7 @@ void VoronoiApp::clientUpdate() {
 }
 
 void VoronoiApp::checkLoad() {
+    emit(clientOwn,thisServer->myClients.size());
     if (thisServer->isLoaded()){
         if (master) {
             // Select new server key
@@ -465,7 +485,7 @@ OverlayKey VoronoiApp::getNewServerKey(OverlayKey key) {
             if (kit == inUse.end()) {
                 inUse.insert((*it).getKey());
                 EV << "VoronoiApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
-                sCount = inUse.size()+1;
+                sCount = inUse.size();
                 return (*it).getKey();
             }
         }
@@ -480,10 +500,11 @@ void VoronoiApp::sendNewServer(OverlayKey newKey) {
     newServer->setMasterKey(thisServer->masterKey); // Set master key used to request new server when loaded
     newServer->key = newKey;
 
-    EV << "newServer.areaDim" << newServer->areaDim;
+    EV << "newServer.areaDim" << newServer->areaDim << std::endl;
     thisServer->refine(newServer);
     clientCount = thisServer->myClients.size();
-
+    cellN = thisServer->cell.n;
+    area = thisServer->calcArea();
     updateNeighbours(newServer);
 
     DLBMessage *myMessage; // the message we'll send
@@ -542,7 +563,6 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
         }
     }
     delete removeMsg;
-
     EV << "myClients.size() : " << retServer->myClients.size() << std::endl;
     EV << "myNeighbours.size() : " << retServer->neighbours.size() << std::endl;
     EV << "Lvl : " << retServer->lvl << std::endl;
@@ -565,6 +585,7 @@ void VoronoiApp::updateNeighbours(VoroServer* newServer) {
         }
     }
 
+//    thisServer->neighbours.clear();
     delete rectMsg;
     EV << "+++++++++++++++++ UpdateNeighs ++++++++++++++++++" << std::endl;
 }

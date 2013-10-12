@@ -36,7 +36,10 @@ simple QuadtreeApp extends BaseApp
         double leaveChance;      // chance that a client leaves
         @signal[numMsg](type="int");
         @statistic[numMsg](title="number of Msg"; source="numMsg"; record=vector,stats; interpolationmode=none);
+     	@signal[numClients](type="int");		
         @statistic[numClients](title="number of Client migrations"; source="numClients"; record=vector,stats; interpolationmode=none);
+        @signal[numClientOwn](type="int");
+        @statistic[numClientOwn](title="number of Client owned"; source="numClientOwn"; record=vector,stats; interpolationmode=none);
 }
 
 module QuadtreeAppModules like ITier

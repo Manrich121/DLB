@@ -60,6 +60,7 @@ void QuadtreeApp::initializeApp(int stage)
     // Register signals
     msgCountSig = registerSignal("numMsg");
     clientMigrate = registerSignal("numClients");
+    clientOwn = registerSignal("numClientOwn");
 
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -140,6 +141,7 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                         myKey = this->overlay->getThisNode().getKey();
                         sCount = 0;
                         if(master){
+                            inUse.insert(myKey);
                             clientAddTimer = new cMessage("Client: Add or Remove");
                             scheduleAt(simTime() + clientPeriod, clientAddTimer);
 
@@ -244,7 +246,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         if (master){
             OverlayKey slaveKey = myMsg->getSenderKey();
             delete myMsg;
-            OverlayKey newKey = this->getNewServerKey();
+            OverlayKey newKey = this->getNewServerKey(slaveKey);
             if (!newKey.isUnspecified()) {
                 DLBMessage *myMessage; // the message we'll send
                 myMessage = new DLBMessage();
@@ -284,7 +286,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         // Test to see if I am master
         if(master){
             inUse.erase(myMsg->getSenderKey());
-            sCount--;
+            sCount = inUse.size();
             EV << "**************\n Erased inUse["<<myMsg->getSenderKey() << "]" << std::endl;
         }
     }delete msg; break;
@@ -380,10 +382,11 @@ void QuadtreeApp::clientUpdate() {
 }
 
 void QuadtreeApp::checkLoad() {
+    emit(clientOwn,thisServer->myClients.size());
     if (thisServer->isLoaded()){
         if (master) {
             // Select new server key
-            OverlayKey newKey =  getNewServerKey();
+            OverlayKey newKey =  getNewServerKey(myKey);
             if (newKey.isUnspecified())
                 return;
             sendNewServer(newKey);
@@ -437,20 +440,21 @@ void QuadtreeApp::checkLoad() {
     }
 }
 
-OverlayKey QuadtreeApp::getNewServerKey() {
+OverlayKey QuadtreeApp::getNewServerKey(OverlayKey key) {
     std::vector<NodeHandle>::const_iterator it;
     std::set<OverlayKey>::iterator kit;
-    NodeVector* neighs = this->overlay->neighborSet(maxServers);
+//    NodeVector* neighs = this->overlay->neighborSet(maxServers);
+    NodeVector* neighs = this->overlay->local_lookup(key, maxServers, false);
 
     if (sCount < maxServers) {
         EV << "QuadtreeApp::checkLoad =>My " << thisNode.getIp() << " OverlayNeighbours size: " << neighs->size()-1 << std::endl;
 
         for (it = neighs->begin(); it != neighs->end(); it++) {
             kit = inUse.find((*it).getKey());
-            if (kit == inUse.end() && (*it).getKey() != myKey) {
+            if (kit == inUse.end()) {
                 inUse.insert((*it).getKey());
-                EV << "QuadtreeApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
-                sCount++;
+                EV << "VoronoiApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
+                sCount = inUse.size();
                 return (*it).getKey();
             }
         }

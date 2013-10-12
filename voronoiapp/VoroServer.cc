@@ -97,8 +97,15 @@ void VoroServer::refine(VoroServer* t) {
     this->neighbours[t->key] = t->loc;
     t->neighbours[this->key] = this->loc;
 
-    this->generateVoronoi();
+    //transfer all my neighbours
+    map<OverlayKey,Point>::iterator nit;
+    for(nit=this->neighbours.begin();nit!=neighbours.end();nit++){
+        if((*nit).first != t->key){
+            t->neighbours[(*nit).first] = (*nit).second;
+        }
+    }
     t->generateVoronoi();
+    this->generateVoronoi();
 
     set <Client*>::iterator cit;
     set<Client*> tmpSet = myClients;
@@ -396,22 +403,33 @@ bool VoroServer::pointInPolygon(Point p) {
     std::vector<Point> verts;
     vertsToVector(&verts);
 
+//    verts =myUnique(verts);
+
     for (i=0; i<polySides; i++) {
         polyYi = verts[i].y();
         polyXi = verts[i].x();
         polyYj = verts[j].y();
         polyXj = verts[j].x();
 
-        if ((polyYi >= y) != (polyYj >= y)) {
-          if (polyXi+(polyXj-polyXi)*(y-polyYi)/(polyYj-polyYi)>=x) {
-            oddNodes=!oddNodes;
-          }
+        if ( ((polyYi>y) != (polyYj>y)) &&
+             (x <= (polyXj-polyXi) * (y-polyYi) / (polyYj-polyYi) + polyXi) ) {
+            oddNodes =! oddNodes;
         }
-
         j=i;
     }
 
     return oddNodes;
+}
+
+double VoroServer::calcArea(){
+    double sum =0;
+    std::vector<Point> verts;
+    vertsToVector(&verts);
+
+    for(unsigned int i=0;i<verts.size()-1;i++){
+        sum += (verts[i+1].x()-verts[i].x())*(verts[i+1].y()+verts[i].y());
+    }
+    return abs(sum/2);
 }
 
 // Takes an array of atleast 3 points and returns if they are ccw

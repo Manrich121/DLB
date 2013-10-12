@@ -25,7 +25,7 @@ class VoronoiApp: public BaseApp {
     //Stats signals
     simsignal_t msgCountSig;
     simsignal_t clientMigrate;
-
+    simsignal_t clientOwn;
 
     // Self timer messages
     cMessage *ticTimer;
@@ -43,6 +43,8 @@ class VoronoiApp: public BaseApp {
     double leaveChance;
     double clientPeriod;
     int neighCount;
+    int cellN;
+    double area;
     bool master;
     OverlayKey myKey;
     VoroServer* thisServer;

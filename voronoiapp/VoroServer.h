@@ -94,6 +94,7 @@ public:
     void deleteMyVertex(Vertex* v);
     bool pointInPolygon(Point p);
     std::vector<Point> *RemoveDup(std::vector<Point> v);
+    double calcArea();
 
     // Params
     OverlayKey key;
