@@ -20,21 +20,15 @@
 VoroServer::VoroServer(){
     key = OverlayKey::ZERO;
     loc = Point(0,0);
-    lvl = -1;           // Set lvl to -1 indicationg that it has not been assigned
     cell.n = 0;
-    childCount = 0;
     cell.origin = NULL;
-    parent = NULL;
 }
 
 VoroServer::VoroServer(OverlayKey k, int areaDim){
     key = k;
     loc = Point(0,0);
-    lvl = -1;           // Set lvl to -1 indicationg that it has not been assigned
     cell.n = 0;
-    childCount = 0;
     cell.origin = NULL;
-    parent = NULL;
     this->areaDim = areaDim;
 }
 
@@ -45,11 +39,8 @@ VoroServer::VoroServer(OverlayKey k, double x, double y, int areaDim)
 {
     key = k;
     loc = Point(x,y);
-    lvl = 0;
     cell.n = 0;
-    childCount = 0;
     cell.origin = NULL;
-    parent = NULL;
     this->areaDim = areaDim;
 }
 
@@ -425,11 +416,24 @@ double VoroServer::calcArea(){
     double sum =0;
     std::vector<Point> verts;
     vertsToVector(&verts);
+    unsigned int i,j = verts.size()-1;
 
-    for(unsigned int i=0;i<verts.size()-1;i++){
-        sum += (verts[i+1].x()-verts[i].x())*(verts[i+1].y()+verts[i].y());
+    for(i=0;i<verts.size();i++){
+        sum += (verts[j].x()+verts[i].x())*(verts[j].y()-verts[i].y());
+        j=i;
     }
     return abs(sum/2);
+
+    /*
+     *
+     *   double  area=0. ;
+  int     i, j=points-1  ;
+
+  for (i=0; i<points; i++) {
+    area+=(X[j]+X[i])*(Y[j]-Y[i]); j=i; }
+
+  return area*.5;
+     */
 }
 
 // Takes an array of atleast 3 points and returns if they are ccw

@@ -276,6 +276,17 @@ bool QuadServer::insideArea(Point* tp) {
     return false;
 }
 
+double QuadServer::calcArea(){
+    std::list<Rectangle*>::iterator it;
+    double sum =0;
+    Rectangle* curRec;
+    for (it = this->cell.rect.begin(); it != cell.rect.end();it++) {
+        curRec = (*it);
+        sum += abs((curRec->topLeft.x()-curRec->botRight.x())*(curRec->topLeft.y()-curRec->botRight.y()));
+    }
+    return sum;
+}
+
 /*
  *  Tests if the QuadServer t is adjacent and adds to neigbour list
  *   a  |   b   |   c

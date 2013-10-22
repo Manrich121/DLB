@@ -26,6 +26,14 @@ class VoronoiApp: public BaseApp {
     simsignal_t msgCountSig;
     simsignal_t clientMigrate;
     simsignal_t clientOwn;
+    simsignal_t overSig;
+    simsignal_t clientD;
+
+    //Stat counter
+    unsigned int msgCount;
+    unsigned int clientMiCount;
+    double overloadPeriod;
+    double clientDens;
 
     // Self timer messages
     cMessage *ticTimer;
@@ -53,7 +61,6 @@ class VoronoiApp: public BaseApp {
     // Master server params
     int sCount;
     std::set<OverlayKey> inUse;
-    std::vector<Client*> notMine;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created

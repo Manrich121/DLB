@@ -78,14 +78,11 @@ public:
     void GrahamScan(std::vector<Point> p);
     void vertsToVector(std::vector<Point> *v);
     void findIntersects(Line line, std::vector<Point> *ip);
-    void checkNeighbours();
     bool isNeigh(Point tloc);
 
     void refine(VoroServer *t);     // calculate the new cell after intercection of the halfspace between
                                 // the current server and new point
     Point getCenterofClients();
-    void returnThisSite();
-    void removeMe(OverlayKey t, map <OverlayKey, Point> excludeNeighs);
     bool ownership(Client* c);
 
     // Polygon functions
@@ -93,17 +90,13 @@ public:
     void deleteCell();
     void deleteMyVertex(Vertex* v);
     bool pointInPolygon(Point p);
-    std::vector<Point> *RemoveDup(std::vector<Point> v);
     double calcArea();
 
     // Params
     OverlayKey key;
     OverlayKey masterKey;
     Point loc;
-    int lvl;
     VCell cell;
-    VoroServer* parent;
-    int childCount;
     std::map<OverlayKey, Point> neighbours;     // OverlayKey mapped to a server locations
     std::set<Client*> myClients;
     int areaDim;

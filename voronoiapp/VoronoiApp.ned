@@ -35,6 +35,10 @@ simple VoronoiApp extends BaseApp
         @statistic[numClients](title="number of Client migrations"; source="numClients"; record=vector,stats; interpolationmode=none);
         @signal[numClientOwn](type="int");
         @statistic[numClientOwn](title="number of Client owned"; source="numClientOwn"; record=vector,stats; interpolationmode=none);
+        @signal[overloadT](type="double");
+        @statistic[overloadT](title="Time overloaded"; source="overloadT"; record=vector,stats; interpolationmode=none);
+        @signal[clientDens](type="double");
+        @statistic[clientDens](title="Client density"; source="clientDens"; record=vector,stats; interpolationmode=none);
          
 }
 

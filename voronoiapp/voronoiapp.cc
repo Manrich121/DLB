@@ -53,6 +53,11 @@ void VoronoiApp::initializeApp(int stage)
     myKey = OverlayKey::ZERO;
     thisServer = NULL;
 
+    msgCount =0;
+    clientMiCount =0;
+    overloadPeriod = 0;
+    clientDens =0;
+
     //TODO: add WATCH on data vars to record
     WATCH(sCount);
     WATCH(globClientCount);
@@ -60,12 +65,15 @@ void VoronoiApp::initializeApp(int stage)
     WATCH(neighCount);
     WATCH(cellN);
     WATCH(area);
+    WATCH(clientDens);
     WATCH(myKey);
 
     // Register signals
     msgCountSig = registerSignal("numMsg");
     clientMigrate = registerSignal("numClients");
     clientOwn = registerSignal("numClientOwn");
+    overSig = registerSignal("overloadT");
+    clientD = registerSignal("clientDens");
 
     if (this->getParentModule()->getParentModule()->getIndex() == 0) {
         this->master = true;
@@ -204,7 +212,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
            << std::endl;
 
         callRoute(senderKey,myMsg);
-        emit(msgCountSig, 1);
+        emit(msgCountSig, ++msgCount);
     }break;
     case DEBUG_MSG : {
             EV << "VoronoiApp::deliver => " << thisNode.getIp() << ": Got reply from "<< myMsg->getSenderKey() << std::endl;
@@ -265,10 +273,8 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
         EV << "------------------ Client Transfer ----------------" << std::endl;
         }break;
     case CLIENTT_ACK: {
-            EV << "^^^clientTransferACK: client.Size " << myMsg->getClients().size() << " notMine.size " << notMine.size() << std::endl;
             std::vector<Client*> remove = myMsg->getClients();
             for(unsigned int i=0;i<remove.size();i++){
-                notMine.pop_back();
                 thisServer->myClients.erase(remove[i]);
                 EV << "^^^^clientTransferACK: Remove client: " << remove[i]->loc.x() << ", " << remove[i]->loc.y() << std::endl;
             }
@@ -287,7 +293,7 @@ void VoronoiApp::deliver(OverlayKey& key, cMessage* msg) {
                 myMessage->setByteLength(sizeof(newKey)); // set the message length to size of an Overlaykey
 
                 callRoute(slaveKey, myMessage);
-                emit(msgCountSig, 1);
+                emit(msgCountSig, ++msgCount);
             }
         }else{
             EV << "@@@@@@@@@@@@@@@@@@" << std::endl;
@@ -398,11 +404,9 @@ void VoronoiApp::removeClient() {
 void VoronoiApp::clientUpdate() {
     set <Client*>::iterator it;
     set <Client*>::iterator tmp;
+    std::vector<Client*> notMine;
 
-//    if(!notMine.empty()){
-//        EV << "CLIENT ERRRORORORORO LOST" << std::endl;
-//        endSimulation();
-//    }
+
     EV << "------------ "<< thisNode.getIp()<< " Update " << thisServer->myClients.size() << " Clients--------------" << std::endl;
     for (it = thisServer->myClients.begin(); it != thisServer->myClients.end();it++) {
        (*it)->move();
@@ -431,8 +435,9 @@ void VoronoiApp::clientUpdate() {
         for(sit = thisServer->neighbours.begin(); sit != thisServer->neighbours.end(); sit++) {
             EV << "VoronoiApp::clientUpdate => Transfer clients to " << (*sit).first << std::endl;
             callRoute((*sit).first,clientTMsg->dup());
-            emit(msgCountSig, 1);
-            emit(clientMigrate, notMine.size());
+            emit(msgCountSig, ++msgCount);
+            clientMiCount += notMine.size();
+            emit(clientMigrate, clientMiCount);
         }
         delete clientTMsg;
         EV << "------------ Transfer Clients--------------" << std::endl;
@@ -441,7 +446,13 @@ void VoronoiApp::clientUpdate() {
 
 void VoronoiApp::checkLoad() {
     emit(clientOwn,thisServer->myClients.size());
+    area = thisServer->calcArea();
+    clientDens = 2000*2000*thisServer->myClients.size()/area;
+    emit(clientD,clientDens);
     if (thisServer->isLoaded()){
+        if(overloadPeriod==0)
+            overloadPeriod = simTime().dbl();
+            emit(overSig, overloadPeriod);
         if (master) {
             // Select new server key
             OverlayKey newKey =  getNewServerKey(myKey);
@@ -460,10 +471,15 @@ void VoronoiApp::checkLoad() {
             reqMsg->setByteLength(100); // set the message length to 100 bytes
 
             callRoute(thisServer->masterKey, reqMsg);
-            emit(msgCountSig, 1);
+            emit(msgCountSig, ++msgCount);
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
         }
     }else{
+        if(overloadPeriod!=0){
+            emit(overSig, overloadPeriod);
+            overloadPeriod = 0;
+        }
+
         if(thisServer->underLoaded()) {
             if (this->master == false) {
 
@@ -481,7 +497,7 @@ void VoronoiApp::checkLoad() {
                 for(sit = thisServer->neighbours.begin(); sit != thisServer->neighbours.end(); sit++) {
                     EV << "VoronoiApp::underload => Notify neihgbour about my leave " << (*sit).first << std::endl;
                     callRoute((*sit).first,sretMsg->dup());
-                    emit(msgCountSig, 1);
+                    emit(msgCountSig, ++msgCount);
                 }
 
                 delete sretMsg;
@@ -492,8 +508,12 @@ void VoronoiApp::checkLoad() {
                 freeMsg->setByteLength(sizeof(myKey));
 
                 callRoute(thisServer->masterKey, freeMsg);
-                emit(msgCountSig, 1);
+                emit(msgCountSig, ++msgCount);
 
+                msgCount =0;
+                emit(msgCountSig, msgCount);
+                clientMiCount =0;
+                emit(clientMigrate, 0);
                 clientCount = 0;
                 neighCount = 0;
                 thisServer->myClients.clear();
@@ -559,7 +579,7 @@ void VoronoiApp::sendNewServer(OverlayKey newKey) {
     EV << "VoronoiApp::checkLoad => Overloaded and setting up new server, key: " << newKey << " MyLoc (" << thisServer->loc.x() << "," << thisServer->loc.y()
             << ") NewServloc (" << newServer->loc.x() << "," << newServer->loc.y() << ")"<< std::endl;
     callRoute(newKey, myMessage);
-    emit(msgCountSig, 1);
+    emit(msgCountSig, ++msgCount);
 
     EV << "+++++++++++++++++ SendNewServer ++++++++++++++++++" << std::endl;
 }
@@ -581,7 +601,7 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
 
     // Send to removeMsg myself
     callRoute(myKey, removeMsg->dup());
-    emit(msgCountSig, 1);
+    emit(msgCountSig, ++msgCount);
 
     map <OverlayKey, Point> excludeNeighs = retServer->neighbours;
 
@@ -589,7 +609,7 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
     for(it = thisServer->neighbours.begin(); it != thisServer->neighbours.end(); it++) {
         if(excludeNeighs.find((*it).first) == excludeNeighs.end()){     // Not in excludeList
             callRoute((*it).first, removeMsg->dup());
-            emit(msgCountSig, 1);
+            emit(msgCountSig, ++msgCount);
         }
     }
 
@@ -603,7 +623,6 @@ void VoronoiApp::returnServer(VoroServer* retServer) {
     delete removeMsg;
     EV << "myClients.size() : " << retServer->myClients.size() << std::endl;
     EV << "myNeighbours.size() : " << retServer->neighbours.size() << std::endl;
-    EV << "Lvl : " << retServer->lvl << std::endl;
     thisServer->generateVoronoi();
 
     EV << "Transfer all myClients" << std::endl;
@@ -629,7 +648,7 @@ void VoronoiApp::updateNeighbours(VoroServer* newServer) {
     for (it = thisServer->neighbours.begin(); it != thisServer->neighbours.end(); it++) {
         if((*it).first != newServer->key) {
             callRoute((*it).first, rectMsg->dup());
-            emit(msgCountSig, 1);
+            emit(msgCountSig, ++msgCount);
         }
     }
 

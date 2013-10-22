@@ -20,12 +20,17 @@
 #include "BaseApp.h"
 #include "QuadServer.h"
 
+
+
 class QuadtreeApp: public BaseApp {
 
     //Stats signals
     simsignal_t msgCountSig;
     simsignal_t clientMigrate;
     simsignal_t clientOwn;
+    simsignal_t clientD;
+
+    cOutVector globClientDens;
 
     // Self timer messages
     cMessage *ticTimer;
@@ -33,6 +38,11 @@ class QuadtreeApp: public BaseApp {
     cMessage *clientAddTimer;
     cMessage *clientMoveTimer;
     cMessage *setupMessage;
+
+    //Stat counter
+    unsigned int msgCount;
+    unsigned int clientMiCount;
+    double clientDens;
 
     //params
     int maxServers;
@@ -44,6 +54,7 @@ class QuadtreeApp: public BaseApp {
     double clientPeriod;
     double loadPeriod;
     int neighCount;
+    double area;
     bool master;
     OverlayKey myKey;
     QuadServer* thisServer;
