@@ -33,7 +33,7 @@ void doUnpacking(cCommBuffer *, T& t) {
 EXECUTE_ON_STARTUP(
     cEnum *e = cEnum::find("MessageType");
     if (!e) enums.getInstance()->add(e = new cEnum("MessageType"));
-    e->insert(LOC_MSG, "LOC_MSG");
+    e->insert(CLIENTSIZE_MSG, "CLIENTSIZE_MSG");
     e->insert(SERVER_MSG, "SERVER_MSG");
     e->insert(CLIENTRANS_MSG, "CLIENTRANS_MSG");
     e->insert(REQKEY_MSG, "REQKEY_MSG");
@@ -50,6 +50,7 @@ Register_Class(DLBMessage);
 DLBMessage::DLBMessage(const char *name, int kind) : cPacket(name,kind)
 {
     this->type_var = 0;
+    this->clientSize_var = 0;
 }
 
 DLBMessage::DLBMessage(const DLBMessage& other) : cPacket(other)
@@ -79,6 +80,7 @@ void DLBMessage::copy(const DLBMessage& other)
     this->rects_var = other.rects_var;
     this->voroServer_var = other.voroServer_var;
     this->senderLoc_var = other.senderLoc_var;
+    this->clientSize_var = other.clientSize_var;
 }
 
 void DLBMessage::parsimPack(cCommBuffer *b)
@@ -92,6 +94,7 @@ void DLBMessage::parsimPack(cCommBuffer *b)
     doPacking(b,this->rects_var);
     doPacking(b,this->voroServer_var);
     doPacking(b,this->senderLoc_var);
+    doPacking(b,this->clientSize_var);
 }
 
 void DLBMessage::parsimUnpack(cCommBuffer *b)
@@ -105,6 +108,7 @@ void DLBMessage::parsimUnpack(cCommBuffer *b)
     doUnpacking(b,this->rects_var);
     doUnpacking(b,this->voroServer_var);
     doUnpacking(b,this->senderLoc_var);
+    doUnpacking(b,this->clientSize_var);
 }
 
 int DLBMessage::getType() const
@@ -187,6 +191,16 @@ void DLBMessage::setSenderLoc(const Point& senderLoc)
     this->senderLoc_var = senderLoc;
 }
 
+int DLBMessage::getClientSize() const
+{
+    return clientSize_var;
+}
+
+void DLBMessage::setClientSize(int clientSize)
+{
+    this->clientSize_var = clientSize;
+}
+
 class DLBMessageDescriptor : public cClassDescriptor
 {
   public:
@@ -234,7 +248,7 @@ const char *DLBMessageDescriptor::getProperty(const char *propertyname) const
 int DLBMessageDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 8+basedesc->getFieldCount(object) : 8;
+    return basedesc ? 9+basedesc->getFieldCount(object) : 9;
 }
 
 unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -254,8 +268,9 @@ unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) co
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
+        FD_ISEDITABLE,
     };
-    return (field>=0 && field<8) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<9) ? fieldTypeFlags[field] : 0;
 }
 
 const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
@@ -275,8 +290,9 @@ const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
         "rects",
         "voroServer",
         "senderLoc",
+        "clientSize",
     };
-    return (field>=0 && field<8) ? fieldNames[field] : NULL;
+    return (field>=0 && field<9) ? fieldNames[field] : NULL;
 }
 
 int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
@@ -291,6 +307,7 @@ int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
     if (fieldName[0]=='r' && strcmp(fieldName, "rects")==0) return base+5;
     if (fieldName[0]=='v' && strcmp(fieldName, "voroServer")==0) return base+6;
     if (fieldName[0]=='s' && strcmp(fieldName, "senderLoc")==0) return base+7;
+    if (fieldName[0]=='c' && strcmp(fieldName, "clientSize")==0) return base+8;
     return basedesc ? basedesc->findField(object, fieldName) : -1;
 }
 
@@ -311,8 +328,9 @@ const char *DLBMessageDescriptor::getFieldTypeString(void *object, int field) co
         "rectVect",
         "VoroServer",
         "Point",
+        "int",
     };
-    return (field>=0 && field<8) ? fieldTypeStrings[field] : NULL;
+    return (field>=0 && field<9) ? fieldTypeStrings[field] : NULL;
 }
 
 const char *DLBMessageDescriptor::getFieldProperty(void *object, int field, const char *propertyname) const
@@ -363,6 +381,7 @@ std::string DLBMessageDescriptor::getFieldAsString(void *object, int field, int 
         case 5: {std::stringstream out; out << pp->getRects(); return out.str();}
         case 6: {std::stringstream out; out << pp->getVoroServer(); return out.str();}
         case 7: {std::stringstream out; out << pp->getSenderLoc(); return out.str();}
+        case 8: return long2string(pp->getClientSize());
         default: return "";
     }
 }
@@ -378,6 +397,7 @@ bool DLBMessageDescriptor::setFieldAsString(void *object, int field, int i, cons
     DLBMessage *pp = (DLBMessage *)object; (void)pp;
     switch (field) {
         case 0: pp->setType(string2long(value)); return true;
+        case 8: pp->setClientSize(string2long(value)); return true;
         default: return false;
     }
 }
@@ -399,8 +419,9 @@ const char *DLBMessageDescriptor::getFieldStructName(void *object, int field) co
         "rectVect",
         "VoroServer",
         "Point",
+        NULL,
     };
-    return (field>=0 && field<8) ? fieldStructNames[field] : NULL;
+    return (field>=0 && field<9) ? fieldStructNames[field] : NULL;
 }
 
 void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i) const

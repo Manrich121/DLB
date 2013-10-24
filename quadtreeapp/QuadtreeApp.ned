@@ -35,6 +35,15 @@ simple QuadtreeApp extends BaseApp
         double clientPeriod;
         double loadPeriod;
         double leaveChance;      // chance that a client leaves
+        
+        // number of Server signals
+        @signal[numOverloadServ](type="int");
+        @statistic[numOverloadServ](title="number of overload servers"; source="numOverloadServ"; record=vector,stats; interpolationmode=none);
+        @signal[numInUseServ](type="int");
+        @statistic[numInUseServ](title="number of in use servers"; source="numInUseServ"; record=vector,stats; interpolationmode=none);
+        @signal[numFreeServ](type="int");
+        @statistic[numFreeServ](title="number of free servers"; source="numFreeServ"; record=vector,stats; interpolationmode=none);
+        
         @signal[numMsg](type="int");
         @statistic[numMsg](title="number of Msg"; source="numMsg"; record=vector,stats; interpolationmode=none);
      	@signal[numClients](type="int");		

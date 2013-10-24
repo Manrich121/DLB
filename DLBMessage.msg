@@ -35,7 +35,7 @@ class noncobject Point;
 
 enum MessageType 
 {
-    LOC_MSG = 1;            // message used to send a location
+    CLIENTSIZE_MSG = 1;            // message used to send a location
     SERVER_MSG = 2;         // message used to transfer a server
     CLIENTRANS_MSG = 3;		// message used to transfer a client
     REQKEY_MSG = 4;			// message used by slave to request a new serverkey (Stored in senderKey)
@@ -59,7 +59,7 @@ packet DLBMessage {
 	// Voronoi
 	VoroServer voroServer;			// Used to transfer a voronoi server
 	Point senderLoc;
-
+	int clientSize;					// Used to notify about client size
     
     
    

@@ -67,6 +67,9 @@ void QuadtreeApp::initializeApp(int stage)
 
 
     // Register signals
+    overloadSig = registerSignal("numOverloadServ");
+    inUseSig = registerSignal("numInUseServ");
+    freeServSig = registerSignal("numFreeServ");
     msgCountSig = registerSignal("numMsg");
     clientMigrate = registerSignal("numClients");
     clientOwn = registerSignal("numClientOwn");
@@ -92,24 +95,16 @@ void QuadtreeApp::finishApp(){
 void QuadtreeApp::handleTimerEvent(cMessage* msg){
     // is this Tic timer?
     if (msg == ticTimer) {
-        scheduleAt(simTime() + 2, ticTimer);
+        scheduleAt(simTime() + 1, ticTimer);
+        if(master){
+            emit(inUseSig, inUse.size());
+            emit(overloadSig, overloadSet.size());
+            emit(freeServSig, maxServers-inUse.size());
+        }
 
-        NodeVector* neighs = this->overlay->neighborSet(maxServers);
-        OverlayKey randomKey = neighs->at((intuniform(1, neighs->size()-1))).getKey();
-        EV << "QuadtreeApp::handelTimerEvent =>  Chosen randomKey " << randomKey << std::endl;
-
-        DLBMessage *myMessage; // the message we'll send
-        myMessage = new DLBMessage();
-        myMessage->setType(LOC_MSG); // set the message type to LOC_MSG
-        myMessage->setSenderKey(myKey);  // Store this
-        myMessage->setByteLength(100); // set the message length to 100 bytes
-
-        EV << "QuadtreeApp::handelTimerEvent => " << thisNode.getIp() << ": Sending packet to "
-           << randomKey << "!" << std::endl;
-
-        callRoute(randomKey, myMessage); // send it to the overlay
-        emit(msgCountSig, ++msgCount);
-//        addClient();
+        area = thisServer->calcArea();
+        clientDens = 2000*2000*thisServer->myClients.size()/area;
+        emit(clientD,clientDens);
     }else {
     /*
      *  Check load of a server
@@ -162,6 +157,9 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                             serverTimer = new cMessage("Server load check");
                             scheduleAt(simTime() + loadPeriod, serverTimer);
 
+                            ticTimer = new cMessage("ticTimer");
+                            scheduleAt(simTime()+1,ticTimer);
+
                             thisServer = new QuadServer(myKey, areaDim/2,areaDim/2);
                             thisServer->setMasterKey(myKey);
                             thisServer->addRect(Point(0,0), Point(areaDim,areaDim));
@@ -192,7 +190,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
     }
 
     switch (myMsg->getType()){
-    case LOC_MSG : {
+    case CLIENTSIZE_MSG : {
         OverlayKey senderKey = myMsg->getSenderKey();
         delete myMsg;
         DLBMessage *myMessage; // the message we'll send
@@ -207,7 +205,6 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
            << std::endl;
 
         callRoute(senderKey,myMsg);
-        emit(msgCountSig, ++msgCount);
     }break;
     case DEBUG_MSG : {
             EV << "QuadtreeApp::deliver => " << thisNode.getIp() << ": Got reply from "<< myMsg->getSenderKey() << std::endl;
@@ -239,6 +236,9 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         serverTimer = new cMessage("Server load check");
         scheduleAt(simTime() + loadPeriod, serverTimer);
 
+        ticTimer = new cMessage("ticTimer");
+        scheduleAt(simTime()+1,ticTimer);
+
         }delete msg; break;
     case CLIENTRANS_MSG: {
         EV << "------------------ Client Transfer ----------------" << std::endl;
@@ -257,6 +257,8 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
     case REQKEY_MSG: {
         if (master){
             OverlayKey slaveKey = myMsg->getSenderKey();
+            overloadSet.insert(slaveKey);
+            emit(overloadSig, overloadSet.size());
             delete myMsg;
             OverlayKey newKey = this->getNewServerKey(slaveKey);
             if (!newKey.isUnspecified()) {
@@ -390,12 +392,11 @@ void QuadtreeApp::clientUpdate() {
 
 void QuadtreeApp::checkLoad() {
     emit(clientOwn,thisServer->myClients.size());
-    area = thisServer->calcArea();
-    clientDens = 2000*2000*thisServer->myClients.size()/area;
-    emit(clientD,clientDens);
-
     if (thisServer->isLoaded()){
         if (master) {
+            overloadSet.insert(myKey);
+            emit(overloadSig, overloadSet.size());
+
             // Select new server key
             OverlayKey newKey =  getNewServerKey(myKey);
             if (newKey.isUnspecified()){
@@ -404,6 +405,7 @@ void QuadtreeApp::checkLoad() {
                     return;
             }
             sendNewServer(newKey);
+            overloadSet.erase(myKey);
         }else{
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
             EV << "QuadTree::checkLoad => slave overloaded, requesting new server" << std::endl;

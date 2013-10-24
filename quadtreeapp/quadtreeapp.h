@@ -25,6 +25,10 @@
 class QuadtreeApp: public BaseApp {
 
     //Stats signals
+    simsignal_t overloadSig;
+    simsignal_t inUseSig;
+    simsignal_t freeServSig;
+
     simsignal_t msgCountSig;
     simsignal_t clientMigrate;
     simsignal_t clientOwn;
@@ -62,6 +66,7 @@ class QuadtreeApp: public BaseApp {
     // Master server params
     int sCount;
     std::set<OverlayKey> inUse;
+    std::set<OverlayKey> overloadSet;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created

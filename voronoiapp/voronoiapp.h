@@ -23,15 +23,21 @@
 class VoronoiApp: public BaseApp {
 
     //Stats signals
-    simsignal_t msgCountSig;
-    simsignal_t clientMigrate;
+    simsignal_t neighSig;
+    simsignal_t overloadSig;
+    simsignal_t inUseSig;
+    simsignal_t freeServSig;
+    simsignal_t clientTransSig;
     simsignal_t clientOwn;
-    simsignal_t overSig;
+    simsignal_t totalClients;
     simsignal_t clientD;
 
     //Stat counter
-    unsigned int msgCount;
-    unsigned int clientMiCount;
+    unsigned int numNeighMsg;
+    unsigned int numOverloadMsg;
+    unsigned int numNewServerMsg;
+    unsigned int numFreeMsg;
+    unsigned int numClientTrans;
     double overloadPeriod;
     double clientDens;
 
@@ -61,6 +67,8 @@ class VoronoiApp: public BaseApp {
     // Master server params
     int sCount;
     std::set<OverlayKey> inUse;
+    std::set<OverlayKey> overloadSet;
+    std::map<OverlayKey,int> clientCountMap;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created

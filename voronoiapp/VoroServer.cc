@@ -183,6 +183,14 @@ void VoroServer::generateVoronoi() {
                     mine = false;
                 }
             }
+
+//            if(distTp < newDist){
+//                mine = true;
+//            }else if(abs(newDist - distTp) < EPS) {
+//                mine = true;
+//            }else if(newDist < distTp){
+//                mine = false;
+//            }
         }
         if (mine) {
             sPoints.push_back(curPoint);

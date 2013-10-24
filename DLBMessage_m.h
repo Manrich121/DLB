@@ -34,7 +34,7 @@ typedef std::list<Rectangle*> rectVect;
  * <pre>
  * enum MessageType 
  * {
- *     LOC_MSG = 1;            
+ *     CLIENTSIZE_MSG = 1;            
  *     SERVER_MSG = 2;         
  *     CLIENTRANS_MSG = 3;		
  *     REQKEY_MSG = 4;			
@@ -48,7 +48,7 @@ typedef std::list<Rectangle*> rectVect;
  * </pre>
  */
 enum MessageType {
-    LOC_MSG = 1,
+    CLIENTSIZE_MSG = 1,
     SERVER_MSG = 2,
     CLIENTRANS_MSG = 3,
     REQKEY_MSG = 4,
@@ -75,7 +75,7 @@ enum MessageType {
  * 	
  * 	VoroServer voroServer;			
  * 	Point senderLoc;
- * 
+ * 	int clientSize;					
  *     
  *     
  *    
@@ -93,6 +93,7 @@ class DLBMessage : public ::cPacket
     rectVect rects_var;
     VoroServer voroServer_var;
     Point senderLoc_var;
+    int clientSize_var;
 
   private:
     void copy(const DLBMessage& other);
@@ -134,6 +135,8 @@ class DLBMessage : public ::cPacket
     virtual Point& getSenderLoc();
     virtual const Point& getSenderLoc() const {return const_cast<DLBMessage*>(this)->getSenderLoc();}
     virtual void setSenderLoc(const Point& senderLoc);
+    virtual int getClientSize() const;
+    virtual void setClientSize(int clientSize);
 };
 
 inline void doPacking(cCommBuffer *b, DLBMessage& obj) {obj.parsimPack(b);}
