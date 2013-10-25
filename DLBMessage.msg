@@ -24,13 +24,16 @@ class noncobject VoroServer;
 
 cplusplus {{
 #include <vector>
+#include <set>
 #include "Client.h"
 #include "Point.h"
 typedef std::vector<Client*> clientVect;
 typedef std::list<Rectangle*> rectVect;
+typedef std::set<OverlayKey> keySet;
 }}
 class noncobject clientVect;
 class noncobject rectVect;
+class noncobject keySet;
 class noncobject Point;
 
 enum MessageType 
@@ -59,8 +62,8 @@ packet DLBMessage {
 	// Voronoi
 	VoroServer voroServer;			// Used to transfer a voronoi server
 	Point senderLoc;
-	int clientSize;					// Used to notify about client size
-    
-    
+	int clientSize;					// Used to notify about client size   
+	
+	keySet myNeighs;
    
 }

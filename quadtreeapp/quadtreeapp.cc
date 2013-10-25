@@ -175,6 +175,13 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
                             area=thisServer->calcArea();
 
                             sCount=1;
+
+                            //Update overlay neighbours
+                            std::vector<NodeHandle>::const_iterator it;
+                            NodeVector* neighs = this->overlay->local_lookup(myKey, maxServers, false);
+                            for (it = neighs->begin(); it != neighs->end(); it++) {
+                                allKeys.insert((*it).getKey());
+                            }
                         }
                         delete msg;
                     }else{
@@ -215,7 +222,14 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         callRoute(senderKey,myMsg);
     }break;
     case DEBUG_MSG : {
-            EV << "QuadtreeApp::deliver => " << thisNode.getIp() << ": Got reply from "<< myMsg->getSenderKey() << std::endl;
+        if(master){
+            set<OverlayKey> newNeighs = myMsg->getMyNeighs();
+
+            for(set<OverlayKey>::iterator it=newNeighs.begin();it!=newNeighs.end();it++){
+                allKeys.insert(*it);
+            }
+        }
+
         }delete msg; break;
     case SERVER_MSG : {
         myKey = this->overlay->getThisNode().getKey();
@@ -246,6 +260,8 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
 
         ticTimer = new cMessage("ticTimer");
         scheduleAt(simTime()+1,ticTimer);
+
+        sendNeighbourSet();
 
         }delete msg; break;
     case CLIENTRANS_MSG: {
@@ -480,22 +496,14 @@ void QuadtreeApp::checkLoad() {
 }
 
 OverlayKey QuadtreeApp::getNewServerKey(OverlayKey key) {
-    std::vector<NodeHandle>::const_iterator it;
-    std::set<OverlayKey>::iterator kit;
-//    NodeVector* neighs = this->overlay->neighborSet(maxServers);
-    NodeVector* neighs = this->overlay->local_lookup(key, maxServers, false);
-
-    if (sCount < maxServers) {
-        EV << "QuadtreeApp::checkLoad =>My " << thisNode.getIp() << " OverlayNeighbours size: " << neighs->size()-1 << std::endl;
-
-        for (it = neighs->begin(); it != neighs->end(); it++) {
-            kit = inUse.find((*it).getKey());
-            if (kit == inUse.end()) {
-                inUse.insert((*it).getKey());
-                EV << "VoronoiApp::checkLoad => My neighbour: " << (*it).getKey() << " Ip: " << (*it).getIp() << std::endl;
-                sCount = inUse.size();
-                return (*it).getKey();
-            }
+    set<OverlayKey>::iterator it;
+    for(it = allKeys.begin();it!=allKeys.end();it++){
+        std::set<OverlayKey>::iterator kit = inUse.find(*it);
+        if (kit == inUse.end()) {
+            inUse.insert((*it));
+            EV << "VoronoiApp::checkLoad => My neighbour: " << (*it) << std::endl;
+            sCount = inUse.size();
+            return *it;
         }
     }
     return OverlayKey::UNSPECIFIED_KEY;
@@ -585,3 +593,19 @@ void QuadtreeApp::updateNeighbours() {
 }
 
 
+void QuadtreeApp::sendNeighbourSet() {
+    std::vector<NodeHandle>::const_iterator it;
+    std::set<OverlayKey> myNeighs;
+    NodeVector* neighs = this->overlay->local_lookup(myKey, maxServers, false);
+
+    for (it = neighs->begin(); it != neighs->end(); it++) {
+        myNeighs.insert((*it).getKey());
+    }
+
+    DLBMessage* neighSetMsg = new DLBMessage();
+    neighSetMsg->setType(DEBUG_MSG);
+    neighSetMsg->setMyNeighs(myNeighs);
+
+    callRoute(thisServer->masterKey,neighSetMsg);
+
+}

@@ -21,10 +21,12 @@
 
 // cplusplus {{
 #include <vector>
+#include <set>
 #include "Client.h"
 #include "Point.h"
 typedef std::vector<Client*> clientVect;
 typedef std::list<Rectangle*> rectVect;
+typedef std::set<OverlayKey> keySet;
 // }}
 
 
@@ -76,8 +78,8 @@ enum MessageType {
  * 	VoroServer voroServer;			
  * 	Point senderLoc;
  * 	int clientSize;					
- *     
- *     
+ * 	
+ * 	keySet myNeighs;
  *    
  * }
  * </pre>
@@ -94,6 +96,7 @@ class DLBMessage : public ::cPacket
     VoroServer voroServer_var;
     Point senderLoc_var;
     int clientSize_var;
+    keySet myNeighs_var;
 
   private:
     void copy(const DLBMessage& other);
@@ -137,6 +140,9 @@ class DLBMessage : public ::cPacket
     virtual void setSenderLoc(const Point& senderLoc);
     virtual int getClientSize() const;
     virtual void setClientSize(int clientSize);
+    virtual keySet& getMyNeighs();
+    virtual const keySet& getMyNeighs() const {return const_cast<DLBMessage*>(this)->getMyNeighs();}
+    virtual void setMyNeighs(const keySet& myNeighs);
 };
 
 inline void doPacking(cCommBuffer *b, DLBMessage& obj) {obj.parsimPack(b);}

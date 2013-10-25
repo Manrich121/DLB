@@ -72,6 +72,7 @@ class QuadtreeApp: public BaseApp {
     int sCount;
     std::set<OverlayKey> inUse;
     std::set<OverlayKey> overloadSet;
+    std::set<OverlayKey> allKeys;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created
@@ -88,6 +89,7 @@ class QuadtreeApp: public BaseApp {
     void returnServer(QuadServer* retServer);
     void updateNeighbours();
 
+    void sendNeighbourSet();
 
 public:
     QuadtreeApp(){ticTimer = NULL;

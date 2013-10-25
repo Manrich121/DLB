@@ -81,6 +81,7 @@ void DLBMessage::copy(const DLBMessage& other)
     this->voroServer_var = other.voroServer_var;
     this->senderLoc_var = other.senderLoc_var;
     this->clientSize_var = other.clientSize_var;
+    this->myNeighs_var = other.myNeighs_var;
 }
 
 void DLBMessage::parsimPack(cCommBuffer *b)
@@ -95,6 +96,7 @@ void DLBMessage::parsimPack(cCommBuffer *b)
     doPacking(b,this->voroServer_var);
     doPacking(b,this->senderLoc_var);
     doPacking(b,this->clientSize_var);
+    doPacking(b,this->myNeighs_var);
 }
 
 void DLBMessage::parsimUnpack(cCommBuffer *b)
@@ -109,6 +111,7 @@ void DLBMessage::parsimUnpack(cCommBuffer *b)
     doUnpacking(b,this->voroServer_var);
     doUnpacking(b,this->senderLoc_var);
     doUnpacking(b,this->clientSize_var);
+    doUnpacking(b,this->myNeighs_var);
 }
 
 int DLBMessage::getType() const
@@ -201,6 +204,16 @@ void DLBMessage::setClientSize(int clientSize)
     this->clientSize_var = clientSize;
 }
 
+keySet& DLBMessage::getMyNeighs()
+{
+    return myNeighs_var;
+}
+
+void DLBMessage::setMyNeighs(const keySet& myNeighs)
+{
+    this->myNeighs_var = myNeighs;
+}
+
 class DLBMessageDescriptor : public cClassDescriptor
 {
   public:
@@ -248,7 +261,7 @@ const char *DLBMessageDescriptor::getProperty(const char *propertyname) const
 int DLBMessageDescriptor::getFieldCount(void *object) const
 {
     cClassDescriptor *basedesc = getBaseClassDescriptor();
-    return basedesc ? 9+basedesc->getFieldCount(object) : 9;
+    return basedesc ? 10+basedesc->getFieldCount(object) : 10;
 }
 
 unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) const
@@ -269,8 +282,9 @@ unsigned int DLBMessageDescriptor::getFieldTypeFlags(void *object, int field) co
         FD_ISCOMPOUND,
         FD_ISCOMPOUND,
         FD_ISEDITABLE,
+        FD_ISCOMPOUND,
     };
-    return (field>=0 && field<9) ? fieldTypeFlags[field] : 0;
+    return (field>=0 && field<10) ? fieldTypeFlags[field] : 0;
 }
 
 const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
@@ -291,8 +305,9 @@ const char *DLBMessageDescriptor::getFieldName(void *object, int field) const
         "voroServer",
         "senderLoc",
         "clientSize",
+        "myNeighs",
     };
-    return (field>=0 && field<9) ? fieldNames[field] : NULL;
+    return (field>=0 && field<10) ? fieldNames[field] : NULL;
 }
 
 int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
@@ -308,6 +323,7 @@ int DLBMessageDescriptor::findField(void *object, const char *fieldName) const
     if (fieldName[0]=='v' && strcmp(fieldName, "voroServer")==0) return base+6;
     if (fieldName[0]=='s' && strcmp(fieldName, "senderLoc")==0) return base+7;
     if (fieldName[0]=='c' && strcmp(fieldName, "clientSize")==0) return base+8;
+    if (fieldName[0]=='m' && strcmp(fieldName, "myNeighs")==0) return base+9;
     return basedesc ? basedesc->findField(object, fieldName) : -1;
 }
 
@@ -329,8 +345,9 @@ const char *DLBMessageDescriptor::getFieldTypeString(void *object, int field) co
         "VoroServer",
         "Point",
         "int",
+        "keySet",
     };
-    return (field>=0 && field<9) ? fieldTypeStrings[field] : NULL;
+    return (field>=0 && field<10) ? fieldTypeStrings[field] : NULL;
 }
 
 const char *DLBMessageDescriptor::getFieldProperty(void *object, int field, const char *propertyname) const
@@ -382,6 +399,7 @@ std::string DLBMessageDescriptor::getFieldAsString(void *object, int field, int 
         case 6: {std::stringstream out; out << pp->getVoroServer(); return out.str();}
         case 7: {std::stringstream out; out << pp->getSenderLoc(); return out.str();}
         case 8: return long2string(pp->getClientSize());
+        case 9: {std::stringstream out; out << pp->getMyNeighs(); return out.str();}
         default: return "";
     }
 }
@@ -420,8 +438,9 @@ const char *DLBMessageDescriptor::getFieldStructName(void *object, int field) co
         "VoroServer",
         "Point",
         NULL,
+        "keySet",
     };
-    return (field>=0 && field<9) ? fieldStructNames[field] : NULL;
+    return (field>=0 && field<10) ? fieldStructNames[field] : NULL;
 }
 
 void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i) const
@@ -441,6 +460,7 @@ void *DLBMessageDescriptor::getFieldStructPointer(void *object, int field, int i
         case 5: return (void *)(&pp->getRects()); break;
         case 6: return (void *)(&pp->getVoroServer()); break;
         case 7: return (void *)(&pp->getSenderLoc()); break;
+        case 9: return (void *)(&pp->getMyNeighs()); break;
         default: return NULL;
     }
 }
