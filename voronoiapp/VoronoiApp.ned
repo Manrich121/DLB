@@ -42,12 +42,17 @@ simple VoronoiApp extends BaseApp
         @statistic[numNeighMsg](title="number of neighbour msg"; source="numNeighMsg"; record=vector,stats; interpolationmode=none);
      	@signal[numClients](type="int");	
         @statistic[numClients](title="number of Client migrations"; source="numClients"; record=vector,stats; interpolationmode=none);
+        @signal[numControlMsg](type="int");	
+        @statistic[numControlMsg](title="number of control msg"; source="numControlMsg"; record=vector,stats; interpolationmode=none);
+        
         @signal[numClientOwn](type="int");
         @statistic[numClientOwn](title="number of Client owned"; source="numClientOwn"; record=vector,stats; interpolationmode=none);
         @signal[totalClients](type="int");
         @statistic[totalClients](title="total number of clients"; source="totalClients"; record=vector,stats; interpolationmode=none);
         @signal[clientDens](type="double");
         @statistic[clientDens](title="Client density"; source="clientDens"; record=vector,stats; interpolationmode=none);
+        
+        
          
 }
 

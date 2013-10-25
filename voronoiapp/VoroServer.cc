@@ -125,7 +125,11 @@ Point VoroServer::getCenterofClients(){
     return Point(x,y);
 }
 
+int VoroServer::numCalc =0;
+
 void VoroServer::generateVoronoi() {
+    VoroServer::numCalc++;
+
     std::vector<Point> sPoints;
     std::vector<Point> vPoints;
     std::vector<Point> points;

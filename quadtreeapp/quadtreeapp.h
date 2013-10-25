@@ -29,10 +29,13 @@ class QuadtreeApp: public BaseApp {
     simsignal_t inUseSig;
     simsignal_t freeServSig;
 
-    simsignal_t msgCountSig;
-    simsignal_t clientMigrate;
+    simsignal_t neighSig;
+    simsignal_t controlSig;
+    simsignal_t clientTransSig;
+
     simsignal_t clientOwn;
     simsignal_t clientD;
+    simsignal_t calcSig;
 
     cOutVector globClientDens;
 
@@ -44,8 +47,10 @@ class QuadtreeApp: public BaseApp {
     cMessage *setupMessage;
 
     //Stat counter
-    unsigned int msgCount;
-    unsigned int clientMiCount;
+    unsigned int numNeighMsg;
+    unsigned int numControlMsg;
+    unsigned int numClientTrans;
+
     double clientDens;
 
     //params

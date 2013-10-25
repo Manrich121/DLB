@@ -50,7 +50,9 @@ struct Cell {
 };
 
 class QuadServer {
+
     public:
+    static int numCalcs;
     QuadServer();
     ~QuadServer();
     QuadServer(OverlayKey k, double x, double y);

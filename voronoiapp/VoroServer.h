@@ -59,6 +59,7 @@ struct VCell {
 
 class VoroServer {
 public:
+    static int numCalc;
     VoroServer();
     VoroServer(OverlayKey k, int areaDim);
     ~VoroServer();

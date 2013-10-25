@@ -44,10 +44,13 @@ simple QuadtreeApp extends BaseApp
         @signal[numFreeServ](type="int");
         @statistic[numFreeServ](title="number of free servers"; source="numFreeServ"; record=vector,stats; interpolationmode=none);
         
-        @signal[numMsg](type="int");
-        @statistic[numMsg](title="number of Msg"; source="numMsg"; record=vector,stats; interpolationmode=none);
-     	@signal[numClients](type="int");		
+        @signal[numNeighMsg](type="int");
+        @statistic[numNeighMsg](title="number of neighbour msg"; source="numNeighMsg"; record=vector,stats; interpolationmode=none);
+     	@signal[numClients](type="int");	
         @statistic[numClients](title="number of Client migrations"; source="numClients"; record=vector,stats; interpolationmode=none);
+        @signal[numControlMsg](type="int");	
+        @statistic[numControlMsg](title="number of control msg"; source="numControlMsg"; record=vector,stats; interpolationmode=none);
+        
         @signal[numClientOwn](type="int");
         @statistic[numClientOwn](title="number of Client owned"; source="numClientOwn"; record=vector,stats; interpolationmode=none);
         @signal[clientDens](type="double");

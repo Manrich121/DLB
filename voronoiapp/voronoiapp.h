@@ -23,22 +23,24 @@
 class VoronoiApp: public BaseApp {
 
     //Stats signals
-    simsignal_t neighSig;
     simsignal_t overloadSig;
     simsignal_t inUseSig;
     simsignal_t freeServSig;
+
+    simsignal_t neighSig;
+    simsignal_t controlSig;
     simsignal_t clientTransSig;
+
+    simsignal_t calcSig;
     simsignal_t clientOwn;
     simsignal_t totalClients;
     simsignal_t clientD;
 
     //Stat counter
     unsigned int numNeighMsg;
-    unsigned int numOverloadMsg;
-    unsigned int numNewServerMsg;
-    unsigned int numFreeMsg;
+    unsigned int numControlMsg;
     unsigned int numClientTrans;
-    double overloadPeriod;
+
     double clientDens;
 
     // Self timer messages

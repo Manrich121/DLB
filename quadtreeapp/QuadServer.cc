@@ -116,32 +116,37 @@ bool QuadServer::devide() {
     if (this->lvl == 2) {
         return false;
     }
-        // Get Rect
-        Point p1 = (*cell.rect.begin())->topLeft;
-        Point p2 = (*cell.rect.begin())->botRight;
-        this->cell.n = 0;
-        this->cell.rect.clear();
 
-        // Devide into four rects and add to this.cell
-        Point p3 = Point(p2.x(), p1.y());
-        Point p4 = Point(p1.x(), p2.y());
-        Point p5 = Point((p2.x() + p1.x())/2,(p2.y() + p1.y())/2);
+    QuadServer::numCalcs++;
 
-        // Add all four rectangles
-        this->addRect(p1,p5);
-        this->addRect(p5,p3);
-        this->addRect(p5,p2);
-        this->addRect(p4,p5);
+    // Get Rect
+    Point p1 = (*cell.rect.begin())->topLeft;
+    Point p2 = (*cell.rect.begin())->botRight;
+    this->cell.n = 0;
+    this->cell.rect.clear();
 
-        // Set location in topLeft rect and increase lvl
-        this->loc = Point((p5.x()+p1.x())/2, (p5.y()+p1.y())/2);
-        this->lvl++;
-        return true;
+    // Devide into four rects and add to this.cell
+    Point p3 = Point(p2.x(), p1.y());
+    Point p4 = Point(p1.x(), p2.y());
+    Point p5 = Point((p2.x() + p1.x())/2,(p2.y() + p1.y())/2);
+
+    // Add all four rectangles
+    this->addRect(p1,p5);
+    this->addRect(p5,p3);
+    this->addRect(p5,p2);
+    this->addRect(p4,p5);
+
+    // Set location in topLeft rect and increase lvl
+    this->loc = Point((p5.x()+p1.x())/2, (p5.y()+p1.y())/2);
+    this->lvl++;
+    return true;
 }
 
 /*
  *  Determines if four rectangles can merge into one. Returns true if successful, else false
  */
+
+int QuadServer::numCalcs =0;
 
 bool QuadServer::merge() {
     std::list<Rectangle*>::iterator it;
@@ -151,6 +156,8 @@ bool QuadServer::merge() {
     if (this->cell.n != 4) {
         return false;
     }
+
+    QuadServer::numCalcs++;
 
     // Find the rectangle that is the largest
     for (it = this->cell.rect.begin(); it != cell.rect.end();it++) {
