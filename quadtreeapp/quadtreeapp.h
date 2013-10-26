@@ -47,11 +47,6 @@ class QuadtreeApp: public BaseApp {
     cMessage *clientMoveTimer;
     cMessage *setupMessage;
 
-    //Stat counter
-    unsigned int numNeighMsg;
-    unsigned int numControlMsg;
-    unsigned int numClientTrans;
-
     double clientDens;
 
     //params

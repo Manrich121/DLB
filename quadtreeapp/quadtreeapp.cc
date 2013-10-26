@@ -52,10 +52,6 @@ void QuadtreeApp::initializeApp(int stage)
     thisServer = NULL;
 
     //Stat counter
-    numNeighMsg =0;
-    numControlMsg =0;
-    numClientTrans =0;
-
     clientDens =0;
     allKeysCount =0;
 
@@ -108,13 +104,14 @@ void QuadtreeApp::handleTimerEvent(cMessage* msg){
         scheduleAt(simTime() + 1, ticTimer);
         if(master){
             emit(inUseSig, inUse.size());
-            emit(overloadSig, overloadSet.size());
+//            emit(overloadSig, overloadSet.size());
             emit(freeServSig, maxServers-inUse.size());
         }
 
         area = thisServer->calcArea();
-        clientDens = 2000*2000*thisServer->myClients.size()/area;
+        clientDens = areaDim*areaDim*thisServer->myClients.size()/(area*maxClients);
         emit(clientD,clientDens);
+        emit(overloadSig,thisServer->isLoaded());
     }else {
     /*
      *  Check load of a server
@@ -302,8 +299,6 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
     case REQKEY_MSG: {
         if (master){
             OverlayKey slaveKey = myMsg->getSenderKey();
-            overloadSet.insert(slaveKey);
-            emit(overloadSig, overloadSet.size());
             delete myMsg;
             OverlayKey newKey = this->getNewServerKey(slaveKey);
             if (!newKey.isUnspecified()) {
@@ -314,7 +309,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
                 myMessage->setByteLength(sizeof(newKey)); // set the message length to size of an Overlaykey
 
                 callRoute(slaveKey, myMessage);
-                emit(controlSig, ++numControlMsg);
+                emit(controlSig, 1);
             }
         }else{
             EV << "@@@@@@@@@@@@@@@@@@" << std::endl;
@@ -338,6 +333,8 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
         // Test to see if I am master
         if(master){
             inUse.erase(myMsg->getSenderKey());
+            emit(inUseSig, inUse.size());
+            emit(freeServSig, maxServers-inUse.size());
             sCount = inUse.size();
             EV << "**************\n Erased inUse["<<myMsg->getSenderKey() << "]" << std::endl;
         }
@@ -352,7 +349,7 @@ void QuadtreeApp::deliver(OverlayKey& key, cMessage* msg) {
             ackNeigh->setType(NEIGH_A_R);
             ackNeigh->setSenderKey(myKey);
             callRoute(senderKey, ackNeigh);
-            emit(controlSig, ++numControlMsg);
+            emit(controlSig, 1);
             EV << "QuadtreeApp::" << thisNode.getIp() <<" sending ACK to neighbour" << senderKey << std::endl;
         }
         this->neighCount = thisServer->neighbours.size();
@@ -426,9 +423,9 @@ void QuadtreeApp::clientUpdate() {
         for(sit = thisServer->neighbours.begin(); sit != thisServer->neighbours.end(); sit++) {
             EV << "QuadTreeApp::clientUpdate => Transfer clients to " << *sit << std::endl;
             callRoute(*sit,clientTMsg->dup());
-            emit(neighSig, ++numNeighMsg);
-            numClientTrans += notMine.size();
-            emit(clientTransSig, numClientTrans);
+            emit(neighSig, 1);
+            int numClientTrans = notMine.size();
+            emit(clientTransSig, 1);
         }
         delete clientTMsg;
         EV << "------------ Transfer Clients--------------" << std::endl;
@@ -439,8 +436,8 @@ void QuadtreeApp::checkLoad() {
     emit(clientOwn,thisServer->myClients.size());
     if (thisServer->isLoaded() && thisServer->lvl <2 ){
         if (master) {
-            overloadSet.insert(myKey);
-            emit(overloadSig, overloadSet.size());
+            emit(inUseSig, inUse.size());
+            emit(freeServSig, maxServers-inUse.size());
 
             // Select new server key
             OverlayKey newKey =  getNewServerKey(myKey);
@@ -450,7 +447,8 @@ void QuadtreeApp::checkLoad() {
                     return;
             }
             sendNewServer(newKey);
-            overloadSet.erase(myKey);
+            emit(inUseSig, inUse.size());
+            emit(freeServSig, maxServers-inUse.size());
         }else{
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
             EV << "QuadTree::checkLoad => slave overloaded, requesting new server" << std::endl;
@@ -460,7 +458,7 @@ void QuadtreeApp::checkLoad() {
             reqMsg->setByteLength(100); // set the message length to 100 bytes
 
             callRoute(thisServer->masterKey, reqMsg);
-            emit(controlSig, ++numClientTrans);
+            emit(controlSig, 1);
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
         }
     }else{
@@ -483,7 +481,7 @@ void QuadtreeApp::checkLoad() {
                 sretMsg->setByteLength(sizeof(*thisServer));
 
                 callRoute(thisServer->parent->key, sretMsg);
-                emit(controlSig, ++numControlMsg);
+                emit(controlSig, 1);
 
                 DLBMessage* freeMsg = new DLBMessage();
                 freeMsg->setType(FREEME_MSG);
@@ -491,15 +489,7 @@ void QuadtreeApp::checkLoad() {
                 freeMsg->setByteLength(sizeof(myKey));
 
                 callRoute(thisServer->masterKey, freeMsg);
-                emit(controlSig, ++numControlMsg);
-
-
-                numNeighMsg =0;
-                numControlMsg =0;
-                numClientTrans =0;
-                emit(neighSig,numNeighMsg);
-                emit(controlSig,numControlMsg);
-                emit(clientTransSig, numClientTrans);
+                emit(controlSig, 1);
 
                 clientCount = 0;
                 area=0;
@@ -573,7 +563,7 @@ void QuadtreeApp::sendNewServer(OverlayKey newKey) {
         EV << "QuadtreeApp::checkLoad => Overloaded and setting up new server, key: " << newKey << " MyLoc (" << thisServer->loc.x() << "," << thisServer->loc.y()
                 << ") NewServloc (" << newServer->loc.x() << "," << newServer->loc.y() << ")"<< std::endl;
         callRoute(newKey, myMessage);
-        emit(controlSig, ++numControlMsg);
+        emit(controlSig, 1);
     }
     area = thisServer->calcArea();
     EV << "+++++++++++++++++ SendNewServer ++++++++++++++++++" << std::endl;
@@ -606,7 +596,7 @@ void QuadtreeApp::returnServer(QuadServer* retServer) {
     // Remove me from all neighbour lists
     for(it = retServer->neighbours.begin(); it != retServer->neighbours.end(); it++) {
         callRoute(*it, neighMsg->dup());
-        emit(neighSig, ++numNeighMsg);
+        emit(neighSig, 1);
     }
     delete neighMsg;
     retServer->lvl = -1;
@@ -629,7 +619,7 @@ void QuadtreeApp::updateNeighbours() {
     for (it = thisServer->parent->neighbours.begin(); it != thisServer->parent->neighbours.end(); it++) {
         if(*it != myKey) {
             callRoute(*it, rectMsg->dup());
-            emit(neighSig, ++numNeighMsg);
+            emit(neighSig, 1);
         }
     }
 

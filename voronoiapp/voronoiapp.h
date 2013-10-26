@@ -37,9 +37,9 @@ class VoronoiApp: public BaseApp {
     simsignal_t clientD;
 
     //Stat counter
-    unsigned int numNeighMsg;
-    unsigned int numControlMsg;
-    unsigned int numClientTrans;
+//    unsigned int numNeighMsg;
+//    unsigned int numControlMsg;
+//    unsigned int numClientTrans;
 
     double clientDens;
 
