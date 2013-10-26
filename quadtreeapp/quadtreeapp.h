@@ -20,6 +20,7 @@
 #include "BaseApp.h"
 #include "QuadServer.h"
 
+#define MASTERKEY 777
 
 
 class QuadtreeApp: public BaseApp {
@@ -70,9 +71,10 @@ class QuadtreeApp: public BaseApp {
 
     // Master server params
     int sCount;
+    int allKeysCount;
     std::set<OverlayKey> inUse;
     std::set<OverlayKey> overloadSet;
-    std::set<OverlayKey> allKeys;
+    set<OverlayKey> allKeys;
 
     // application routines
     void initializeApp(int stage);                 // called when the module is being created
@@ -89,7 +91,6 @@ class QuadtreeApp: public BaseApp {
     void returnServer(QuadServer* retServer);
     void updateNeighbours();
 
-    void sendNeighbourSet();
 
 public:
     QuadtreeApp(){ticTimer = NULL;

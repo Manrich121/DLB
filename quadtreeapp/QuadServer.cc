@@ -229,6 +229,27 @@ bool QuadServer::transfer(QuadServer *t) {
 
     this->myClients = tmpSet;
 
+    if (this->isLoaded() && this->cell.n >1) {
+        curRect = (*this->cell.rect.rbegin());
+        p1 = curRect->topLeft;
+        p2 = curRect->botRight;
+        this->cell.rect.pop_back();
+        this->cell.n--;
+        t->addRect(curRect);
+
+
+    // Transfer clients not own by this
+        tmpSet = this->myClients;
+        for(cit =this->myClients.begin(); cit != this->myClients.end();cit++){
+            if (t->ownership(*cit)){
+                tmpSet.erase(*cit);
+                t->myClients.insert(*cit);
+            }
+        }
+
+        this->myClients = tmpSet;
+    }
+
 
 #ifdef _DEBUG
     if (this->neighbours.size() > 8) {
@@ -244,11 +265,15 @@ bool QuadServer::returnArea() {
     set <Client*>::iterator cit;
 
     if (this->parent!=NULL && this->parent->lvl == this->lvl && this->childCount == 0 ) {
-        Rectangle* curR = (*this->cell.rect.rbegin());
+        for(int i=0;i<this->cell.n;i++){
+            Rectangle* curR = (*this->cell.rect.rbegin());
+            this->parent->addRect(curR);
+            this->cell.rect.pop_front();
+        }
+
 
         // Remove self from parent
         this->parent->childCount--;
-        this->parent->addRect(curR);
 
         this->parent->merge();
 
