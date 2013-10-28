@@ -434,7 +434,9 @@ void QuadtreeApp::clientUpdate() {
 
 void QuadtreeApp::checkLoad() {
     emit(clientOwn,thisServer->myClients.size());
-    if (thisServer->isLoaded() && thisServer->lvl <2 ){
+    if (thisServer->isLoaded()) {
+        emit(controlSig, 1);
+        if (thisServer->lvl <2 ){
         if (master) {
             emit(inUseSig, inUse.size());
             emit(freeServSig, maxServers-inUse.size());
@@ -458,8 +460,9 @@ void QuadtreeApp::checkLoad() {
             reqMsg->setByteLength(100); // set the message length to 100 bytes
 
             callRoute(thisServer->masterKey, reqMsg);
-            emit(controlSig, 1);
+//            emit(controlSig, 1);
             EV << "@@@@@@@@@@@@@@@@@@ Slave overload @@@@@@@@@@@@@@@@" << std::endl;
+        }
         }
     }else{
         if(thisServer->underLoaded()) {

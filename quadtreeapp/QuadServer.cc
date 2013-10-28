@@ -215,6 +215,12 @@ bool QuadServer::transfer(QuadServer *t) {
     // Update neighbour list
     this->neighbours.insert(t->key);
     t->neighbours.insert(this->key);
+//    set<OverlayKey>::iterator nit;
+//    for(nit=this->neighbours.begin();nit!=neighbours.end();nit++){
+//        if((*nit) != t->key){
+//            t->neighbours.insert(*nit);
+//        }
+//    }
 
     set<Client*>::iterator cit;
     set<Client*> tmpSet = this->myClients;
@@ -268,7 +274,7 @@ bool QuadServer::returnArea() {
         for(int i=0;i<this->cell.n;i++){
             Rectangle* curR = (*this->cell.rect.rbegin());
             this->parent->addRect(curR);
-            this->cell.rect.pop_front();
+            this->cell.rect.pop_back();
         }
 
 
